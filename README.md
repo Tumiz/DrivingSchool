@@ -1,0 +1,1 @@
+DrivingSchool is a web-based 3D simulator for reinforcement learning algorithms.
