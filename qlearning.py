@@ -8,10 +8,9 @@ import torch.optim as optim
 
 np.random.seed(2)  # reproducible
 
-EPSILON = 0.8   # greedy police
+EPSILON = 0.7   # greedy police
 GAMMA = 0.9    # discount factor
 MAX_EPISODES = 100   # maximum episodes
-FRESH_TIME = 0.2    # fresh time for one move
 TARGET = 7 # where the robot should reach at the end
 
 class Net(nn.Module):
@@ -90,10 +89,7 @@ def get_env_feedback(S, A):
     S_=S+A
     S_=max(0,S_)
     S_=min(10,S_)
-    if abs(S_-TARGET)<abs(S-TARGET) or abs(S_-TARGET)<0.1:
-        R=1
-    else:
-        R=0
+    R=11-abs(S_-TARGET)
     return S_, R
 
 
@@ -103,7 +99,6 @@ def update_env(S, A, Q, info):
     env_list[int(round(S))] = 'o'
     interaction = ''.join(env_list)
     print '\r{}'.format(interaction),'%.3f'%S,'%.3f'%A,'%.3f'%Q,info
-    time.sleep(FRESH_TIME)
 
 
 # main part of RL loop
