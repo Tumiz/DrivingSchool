@@ -32,7 +32,7 @@ class Net(nn.Module):
         return self(torch.tensor([float(S),A])).detach().numpy()[0]
 
     def best_action(self, S):
-        choices=np.random.uniform(-1,1,20)
+        choices=np.linspace(-1,1,21)
         qlist=[]
         for choice in choices:
             qlist.append([self.q(S,choice),choice])
@@ -40,25 +40,34 @@ class Net(nn.Module):
         return ret[0],ret[1]#Q,A
 
     def choose_action(self,S):#return A
+        choices=np.linspace(-1,1,21)
         # This is how to choose an action
         if (np.random.uniform() > EPSILON):  # act non-greedy or state-action have no value
-            A = random.randint(-1,1)
+            A = np.random.choice(choices)
             Q = self.q(S,A)
             info = "try"
         else:   # act greedy
-            Q,A=self.best_action(S)
+            qlist=[]
+            for choice in choices:
+                qlist.append([self.q(S,choice),choice])
+            [Q,A]=max(qlist)  
             info = ""
         return A,Q,info
 
     def train(self,experience):
-        experience=torch.tensor(experience)
+        sample=[]
+        if(len(experience)>100):
+            sample=random.sample(experience,100)
+        else:
+            sample=experience
+        sample=torch.tensor(sample)
         loss_func = nn.MSELoss(reduce = True,size_average = True)
         optimizer=optim.SGD(self.parameters(), lr=0.01)
-        input = torch.tensor(experience[:, 0:2]).float()
-        target = torch.tensor(experience[:, 2:3]).float()
+        input = torch.tensor(sample[:, 0:2]).float()
+        target = torch.tensor(sample[:, 2:3]).float()
         loss_min = loss_func(self(input), target)
         counts=0
-        while loss_min > 0.05 and counts<1000:
+        while loss_min > 0.02 and counts<1000:
             predict = self(input)
             loss = loss_func(predict, target)
             if(torch.isnan(loss)):
@@ -72,6 +81,7 @@ class Net(nn.Module):
             loss.backward()
             optimizer.step() 
             counts+=1
+        a=1
 
 
 
@@ -108,8 +118,8 @@ while episode<=MAX_EPISODES:
     episode+=1
     
     while not is_terminated:
-        Q,A = driver.best_action(S)
-        update_env(S, A, Q, "")
+        A,Q,info = driver.choose_action(S)
+        update_env(S, A, Q, info)
         S_, R = get_env_feedback(S, A)  # take action & get next state and reward
 
         if abs(S_-TARGET)<0.1 and abs(A)<0.1:
