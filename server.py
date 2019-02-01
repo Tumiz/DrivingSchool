@@ -38,17 +38,17 @@ class Session():
         if not self.timer.is_running():
             self.timer.start()
             if self.timer.is_running():
-                print "session started"
+                print("session started")
             else:
-                print "session failed to started"
+                print("session failed to started")
         self.publish("cars number",len(self.cars))
 
     def stop(self):
         self.timer.stop()
         if(not self.timer.is_running()):
-            print "session stopped"
+            print("session stopped")
         else:
-            print "session failed to stop"
+            print("session failed to stop")
 
 class IndexHandler(RequestHandler):
     def get(self):
@@ -68,7 +68,7 @@ class SimHandler(WebSocketHandler):
         request_type=msg["type"]
         if(request_type=="start"): 
             id=int(msg["data"]["id"])
-            if(self.session.cars.has_key(id)):
+            if(self.session.cars.__contains__(id)):
                 car=self.session.cars[id]
                 car.wheelbase=float(msg["data"]["wheel_base"])
                 car.v=float(msg["data"]["velocity"])
@@ -84,7 +84,7 @@ class SimHandler(WebSocketHandler):
                 self.session.publish("status",car.__dict__)      
         elif(request_type=="create"):
             id=int(msg["data"]["id"])
-            if(self.session.cars.has_key(id)):
+            if(self.session.cars.__contains__(id)):
                 car=self.session.cars[id]
                 car.x=float(msg["data"]["x"])
                 car.y=float(msg["data"]["y"])
