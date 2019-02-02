@@ -1,6 +1,7 @@
 # DrivingSchool
 
-DrivingSchool is a web-based 3D simulator for reinforcement learning algorithms.
+DrivingSchool is a lightweight web-based 3D simulator. It is aimed at providing a simple and easy-to-use simulation environment for  reinforcement learning algorithms implemented in Python for autonomous vehicles.
+DrivingSchool是一个轻量级的基于web开发的3D仿真软件。目标是为Python实现的无人车强化学习算法提供简单易用的仿真环境。
 
 ## Requirements
 
