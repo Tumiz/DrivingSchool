@@ -11,12 +11,17 @@ new Vue({
                 x:0,
                 y:0,
                 a:0,
+                ai:{
+                    enable:true,
+                },
+                success_counts:0,
+                failure_counts:0,
             },
             number:0,
             ws: [],
             chart: {
                 velocity: [],
-                acceleration: []
+                a: []
             }
         }
     },
@@ -30,68 +35,6 @@ new Vue({
         document.onkeydown = this.keyDownHandler
         document.onkeyup = this.keyUpHandler
         this.connect()
-        this.chart.velocity = new Chart(document.getElementById("velocity").getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'velocity',
-                    data: [],
-                    backgroundColor: [
-                        'rgba(0, 99, 132, 0.2)',
-                    ],
-                    borderColor: [
-                        'rgba(0,99,132,1)',
-                    ],
-                    fill: false,
-                }]
-            },
-            options: {
-                scales: {
-                    yAxes: [{
-                        ticks: {
-                            beginAtZero: true
-                        }
-                    }],
-                    xAxes: [{
-                        ticks: {
-                            display: false
-                        }
-                    }]
-                }
-            }
-        })
-        this.chart.acceleration = new Chart(document.getElementById("acceleration").getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'acceleration',
-                    data: [],
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.2)',
-                    ],
-                    borderColor: [
-                        'rgba(255,99,132,1)',
-                    ],
-                    fill: false,
-                }],
-            },
-            options: {
-                scales: {
-                    yAxes: [{
-                        ticks: {
-                            beginAtZero: true
-                        }
-                    }],
-                    xAxes: [{
-                        ticks: {
-                            display: false
-                        }
-                    }]
-                }
-            }
-        });
     },
     methods: {
         send(type, data) {
@@ -119,32 +62,20 @@ new Vue({
                     }
                     if (data.id == this.car.id) {
                         this.car.velocity = data.v
-                        this.car.acceleration = data.a
+                        this.car.a = data.a
                         this.car.front_wheel_angle = data.front_wheel_angle
-                        this.car.ctrl_acc = data.ctrl_acc
-                        this.car.x = data.x
-                        this.car.y = data.y
+                        this.car.x = data.x.toPrecision(4)
+                        this.car.y = data.y.toPrecision(4)
+                        this.car.success_counts=data.success_counts
+                        this.car.failure_counts=data.failure_counts
                         this.number= cars.children.length
-                        if (this.chart.velocity.data.labels.length > 300) {
-                            this.chart.velocity.data.labels.shift()
-                            this.chart.velocity.data.datasets[0].data.shift()
-                            this.chart.acceleration.data.labels.shift()
-                            this.chart.acceleration.data.datasets[0].data.shift()
-                        }
-                        this.chart.velocity.data.labels.push(data.t)
-                        this.chart.velocity.data.datasets[0].data.push(data.v)
-                        this.chart.acceleration.data.labels.push(data.t)
-                        this.chart.acceleration.data.datasets[0].data.push(data.a)
-                        this.chart.velocity.update()
-                        this.chart.acceleration.update()
                     }
                     break
                 case "create":
                     if (data.id == this.car.id) {
                         this.car.velocity = data.v
-                        this.car.acceleration = data.a
+                        this.car.a = data.a
                         this.car.front_wheel_angle = data.front_wheel_angle
-                        this.car.ctrl_acc = data.ctrl_acc
                     }
                     break
                 case "cars number":
@@ -190,10 +121,6 @@ new Vue({
             cars.remove(cars.children[0])
             this.number = cars.children.length
             this.send("reset", "")
-            this.chart.velocity.data.labels = []
-            this.chart.acceleration.data.labels = []
-            this.chart.velocity.data.datasets[0].data = []
-            this.chart.acceleration.data.datasets[0].data = []
         },
         stop() {
             this.send("stop", "")
@@ -251,10 +178,6 @@ new Vue({
                     x: obj.position.x,
                     y: obj.position.y,
                 })
-                this.chart.velocity.data.labels = []
-                this.chart.velocity.data.datasets[0].data = []
-                this.chart.acceleration.data.labels = []
-                this.chart.acceleration.data.datasets[0].data = []
             }
         },
         mouseUpHandler(event) {
@@ -264,23 +187,24 @@ new Vue({
         mouseMoveHandler(event) {
             if (!mousePressed)
                 return
+            activeViewPort = currentViewPort(event.offsetX, event.offsetY)
             var dx = event.offsetX - preX
             var dy = event.offsetY - preY
             preX = event.offsetX
             preY = event.offsetY
             switch (activeViewPort) {
                 case 0:
-                var distance = camera.position.length()
-                if (event.button == 0 && event.shiftKey == 1) {
-                    camera.position.set(0, 0, 0)
-                    if (Math.abs(dy) > Math.abs(dx)) {
-                        camera.rotateOnAxis(xAxis, -dy / 1000)
-                    } else {
-                        camera.rotateOnAxis(yAxis, -dx / 1000)
+                    var distance = camera.position.length()
+                    if (event.button == 0 && event.shiftKey == 1) {
+                        camera.position.set(0, 0, 0)
+                        if (Math.abs(dy) > Math.abs(dx)) {
+                            camera.rotateOnAxis(xAxis, -dy / 1000)
+                        } else {
+                            camera.rotateOnAxis(yAxis, -dx / 1000)
+                        }
+                        camera.translateOnAxis(zAxis, distance)
+                        camera.lookAt(camera.parent.position)
                     }
-                    camera.translateOnAxis(zAxis, distance)
-                    camera.lookAt(camera.parent.position)
-                }
                     else {
                         lookAtCenter.sub(camera.position)
                         camera.translateOnAxis(xAxis, -dx / 10)
@@ -290,10 +214,11 @@ new Vue({
                     return
                 case 1:
                     if (onPickedObj && event.button === 0) {
-                        pickedObj.position.x += dx / camera.zoom
-                        pickedObj.position.y -= dy / camera.zoom
-                        this.car.x = pickedObj.position.x
-                        this.car.y = pickedObj.position.y
+                        point = pickPoint(mouse, camera)
+                        pickedObj.position.x=point.x
+                        pickedObj.position.y=point.y
+                        this.car.x = point.x.toPrecision(4)
+                        this.car.y = point.y.toPrecision(4)
                         this.send("create", {
                             id: this.car.id,
                             x: this.car.x,
@@ -301,8 +226,10 @@ new Vue({
                         })
                     }
                     else {
-                        camera.position.x -= dx / camera.zoom
-                        camera.position.y += dy / camera.zoom
+                        lookAtCenter.sub(camera.position)
+                        camera.translateOnAxis(xAxis, -dx / camera.zoom)
+                        camera.translateOnAxis(yAxis, dy / camera.zoom)
+                        lookAtCenter.add(camera.position)
                     }
                     return
                 default:

@@ -13,12 +13,9 @@
         <el-button type="success" @click="start">► Start</el-button>
         <el-button type="info" @click="reset()">↺ Reset</el-button>
         <el-button type="info" @click="stop()">✖ Stop</el-button>
-        <el-button type="info" @click="open('static/help.html')">? Help</el-button>
-        <span class="demonstration">car ${car.id} is selected from ${number} cars</span>
+        <el-button type="info" @click="open('https://github.com/Tumiz/DrivingSchool')">? Help</el-button>
+        <span class="demonstration">car id ${car.id} / ${number} cars x:${car.x}, y:${car.y} ✔:${car.success_counts} ✘:${car.failure_counts}</span>
         <el-form :inline="true" :model="car" class="demo-form-inline">
-            <el-form-item label="Wheel Base">
-                <el-input v-model="car.wheel_base"></el-input>
-            </el-form-item>
             <el-form-item label="Front Wheel Angle">
                 <el-input v-model="car.front_wheel_angle"></el-input>
             </el-form-item>
@@ -27,6 +24,9 @@
             </el-form-item>
             <el-form-item label="Acceleration">
                 <el-input v-model="car.a"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-checkbox v-model="car.ai.enable" label="AI"></el-checkbox>
             </el-form-item>
         </el-form>
     </div>

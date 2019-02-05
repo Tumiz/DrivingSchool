@@ -1,6 +1,6 @@
 import time
-from math import sin,cos,tan
-
+from math import sin,cos,tan,isnan
+from ai import AI
 class Car():
 
     def __init__(self):
@@ -15,6 +15,15 @@ class Car():
         self.vx=0
         self.vy=0
         self.t=-1
+        self.ai=AI()
+        self.success_counts = 0
+        self.failure_counts = 0
+
+
+    def dict(self):
+        c=self.__dict__.copy()
+        del c["ai"]
+        return c
 
     def step(self):
         current_time=time.time()

@@ -42,14 +42,15 @@ function init() {
     scene = new THREE.Scene()
     LoadCar()
     loadMap()
-    cameras[0] = new THREE.PerspectiveCamera( 70, container.offsetWidth / container.offsetHeight, 0.01, 6000 )
-    cameras[0].position.set(-4,0,2)
+    cameras[0] = new THREE.PerspectiveCamera( 60, container.offsetWidth*0.5 / container.offsetHeight, 0.01, 6000 )
     cameras[0].up.set(0,0,1)
+    cameras[0].position.set(-4,0,2)
     cameras[0].lookAt(1000,0,0)
     cameras[0].zoom=1
     lookAtCenter=origin.clone()
 
     cameras[1] = new THREE.OrthographicCamera( container.offsetWidth/-4, container.offsetWidth/4, container.offsetHeight/2, container.offsetHeight/-2, 0.01, 6000 )
+    cameras[1].up.set(1,0,0)
     cameras[1].position.set(0,0,60)
     cameras[1].lookAt(origin)
     cameras[1].zoom=5
@@ -80,7 +81,7 @@ function animate() {
 
 function onContainerResize() {
     var aspect=container.offsetWidth / container.offsetHeight
-    cameras[0].aspect = aspect
+    cameras[0].aspect = aspect*0.5
     cameras[0].updateProjectionMatrix()
     cameras[1].aspect = aspect*0.5
     cameras[1].updateProjectionMatrix()
@@ -90,7 +91,7 @@ function onContainerResize() {
 
 function render() {
     renderer.clear()
-    renderer.setViewport( 0, 0, container.offsetWidth/2, container.offsetHeight/2 )
+    renderer.setViewport( 0, 0, container.offsetWidth/2, container.offsetHeight)
     renderer.render(scene, cameras[0])
     renderer.setViewport( container.offsetWidth/2, 0, container.offsetWidth/2, container.offsetHeight )
     renderer.render(scene, cameras[1])
@@ -102,6 +103,7 @@ function pickObj(mouse,camera){
     console.log(intersects.length)
     if(intersects.length>0){
         var obj=intersects[0].object.parent
+        cameras[0].position.set(-4,0,3)
         obj.add(cameras[0])
         return obj
     }
@@ -126,17 +128,10 @@ function setClass(type){
 function currentViewPort(x,y){
     if(x<container.offsetWidth/2)
     {
-        if(y<container.offsetHeight/2)
-        {
-            mouse.x = 4*x / container.offsetWidth - 1;
-            mouse.y = - 4*y / container.offsetHeight + 1
-            camera=cameras[0]
-            return 0
-        }
-        else
-        {
-            return 2
-        }
+        mouse.x = 4*x / container.offsetWidth - 1;
+        mouse.y = - 2*y / container.offsetHeight + 1
+        camera=cameras[0]
+        return 0
     }
     else
     {
@@ -163,27 +158,17 @@ function Grid(size,divs){
     return obj
 }
 function Axis(){
-    var g_cylinder_z = new THREE.CylinderGeometry( 0, 0.3, 1);
-    var material = new THREE.MeshLambertMaterial( {color: "blue"} );
-    var cylinder = new THREE.Mesh( g_cylinder_z, material );
-    cylinder.position.set(0,0,4)
-    cylinder.rotation.x=Math.PI/2
-    var line_z=new LineSegment(
-                [0, 0, 0],
-                [0, 0, 4],
-                {color: "blue",linewidth:2}
-                );
     var line_y = new LineSegment(
                 [0, -2, 0],
-                [0, 4, 0],
+                [0, 6, 0],
                 {color: "#00FF7F",linewidth:2}
                 )
     var line_x=new LineSegment(
                 [-2, 0, 0],
-                [4, 0, 0],
+                [6, 0, 0],
                 {color: "red",linewidth:2}
                 )
-    return new THREE.Object3D().add(cylinder,line_x,line_y,line_z)
+    return new THREE.Object3D().add(line_x,line_y)
 }
 function Line(vertices,color){
     var geometry=new THREE.Geometry()

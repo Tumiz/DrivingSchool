@@ -7,6 +7,7 @@ import json
 import time
 
 from car import Car
+from ai import AI
 from tornado.ioloop import PeriodicCallback,IOLoop
 from tornado.web import RequestHandler,StaticFileHandler
 from tornado.websocket import WebSocketHandler
@@ -28,7 +29,19 @@ class Session():
         for id in self.cars:
             car=self.cars[id]
             car.step()
-            self.publish("timer",car.__dict__)
+            if car.ai.enable:
+                car.a=car.ai.decision(car.x-30,car.v)
+            if abs(car.x-30)<0.1 and car.v<0.1:
+                car.x=0
+                car.v=0
+                car.a=0
+                car.success_counts+=1
+            if car.x<-10 or car.x>50:
+                car.x=0
+                car.v=0
+                car.a=0
+                car.failure_counts+=1
+            self.publish("timer",car.dict())
 
     def reset(self):
         self.stop()
@@ -76,12 +89,13 @@ class SimHandler(WebSocketHandler):
                 car.a=float(msg["data"]["a"])
                 car.x=float(msg["data"]["x"])
                 car.y=float(msg["data"]["y"])
+                car.ai.enable=bool(msg["data"]["ai"]["enable"])
                 car.t=time.time()                
             self.session.start()
         elif(request_type=="status"):
             for id in self.session.cars:
                 car=self.session.cars[id]
-                self.session.publish("status",car.__dict__)      
+                self.session.publish("status",car.dict())      
         elif(request_type=="create"):
             id=int(msg["data"]["id"])
             if(self.session.cars.__contains__(id)):
@@ -91,7 +105,7 @@ class SimHandler(WebSocketHandler):
             else:
                 self.session.cars[id]=Car()
                 self.session.cars[id].id=id
-            self.session.publish("create",self.session.cars[id].__dict__)
+            self.session.publish("create",self.session.cars[id].dict())
         elif(request_type=="control"):
             id=int(msg["data"]["id"])
             car=self.session.cars[id]
