@@ -5,13 +5,12 @@ import tornado.options
 import os
 import json
 import time
-
+import visdom
 from car import Car
 from ai import AI
 from tornado.ioloop import PeriodicCallback,IOLoop
 from tornado.web import RequestHandler,StaticFileHandler
 from tornado.websocket import WebSocketHandler
-
 from tornado.options import define, options
 
 class Session():
@@ -19,6 +18,9 @@ class Session():
         self.cars=dict()
         self.timer=PeriodicCallback(self.on_timer,50)
         self.users=set()
+        self.viz=visdom.Visdom()
+        self.plot_velocity=[]
+        self.plot_round=[]
 
     def publish(self,type,data):
         msg={"type":type,"data":data}
@@ -29,18 +31,22 @@ class Session():
         for id in self.cars:
             car=self.cars[id]
             car.step()
-            if car.ai.enable:
-                car.a=car.ai.decision(car.x-30,car.v)
-            if abs(car.x-30)<0.1 and car.v<0.1:
-                car.x=0
-                car.v=0
-                car.a=0
+            if(self.plot_velocity):
+                self.viz.line(X=car.t_history,Y=car.v_history,win=self.plot_velocity)
+            else:
+                self.plot_velocity=self.viz.line(X=car.t_history,Y=car.v_history)
+            if abs(car.v)<0.001 and abs(car.x-30)<1:
                 car.success_counts+=1
-            if car.x<-10 or car.x>50:
-                car.x=0
-                car.v=0
-                car.a=0
+                if(not self.plot_round):
+                    self.plot_round=self.viz.line(X=[car.success_counts],Y=[car.t])
+                else:
+                    self.viz.line(X=[car.success_counts],Y=[car.t],win=self.plot_round,update="append")
+                car.reset()
+            elif car.x<-10 or car.x>50:
                 car.failure_counts+=1
+                car.reset()
+            elif car.ai.enable:
+                car.v=car.ai.decision(car.x-30,car.v)
             self.publish("timer",car.dict())
 
     def reset(self):
@@ -89,8 +95,7 @@ class SimHandler(WebSocketHandler):
                 car.a=float(msg["data"]["a"])
                 car.x=float(msg["data"]["x"])
                 car.y=float(msg["data"]["y"])
-                car.ai.enable=bool(msg["data"]["ai"]["enable"])
-                car.t=time.time()                
+                car.ai.enable=bool(msg["data"]["ai"]["enable"])               
             self.session.start()
         elif(request_type=="status"):
             for id in self.session.cars:

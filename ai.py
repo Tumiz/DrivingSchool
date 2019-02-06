@@ -5,7 +5,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-
 class AI:
     def __init__(self):
         self.planner = Planner()
@@ -39,12 +38,14 @@ class Planner(nn.Module):
     def q(self, x_gap):  # return Q
         return self(torch.tensor([x_gap])).item()
 
-    def decision(self, x_gap):  # return A
+    def decision(self, x_gap, v):  # return A
         if(abs(x_gap) < abs(self.x_gap)):
             self.experience.append([self.x_gap, self.v_target])
+        if(random.random()<0.9):
             self.v_target = self.q(x_gap)
         else:
-            self.v_target = random.uniform(-1, 10)
+            self.v_target = random.uniform(v-1, v+1)
+            self.v_target=max(-1,self.v_target)
         self.x_gap = x_gap
         self.train()
         return self.v_target
