@@ -33,7 +33,6 @@ class Car():
             self.t_start=time.time()
         else:
             dt=time.time()-self.t-self.t_start
-        print(dt,self.v)
         self.vx=self.v*cos(self.yaw)
         self.vy=self.v*sin(self.yaw)
         self.x+=self.vx*dt

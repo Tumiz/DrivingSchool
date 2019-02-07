@@ -38,14 +38,19 @@ class Planner(nn.Module):
     def q(self, x_gap):  # return Q
         return self(torch.tensor([x_gap])).item()
 
+    def update_experience(self,x_gap):
+        R=abs(self.x_gap)-abs(x_gap)
+        for i,e in enumerate(self.experience):
+            if abs(e[0]-self.x_gap)<0.01 and e[2]<R:
+                del self.experience[i]
+        self.experience.append([self.x_gap, self.v_target, R])
+
     def decision(self, x_gap, v):  # return A
         if(abs(x_gap) < abs(self.x_gap)):
-            self.experience.append([self.x_gap, self.v_target])
-        if(random.random()<0.9):
+            self.update_experience(x_gap)
             self.v_target = self.q(x_gap)
         else:
-            self.v_target = random.uniform(v-1, v+1)
-            self.v_target=max(-1,self.v_target)
+            self.v_target = random.uniform(-1, 10)
         self.x_gap = x_gap
         self.train()
         return self.v_target
