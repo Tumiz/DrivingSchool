@@ -14,7 +14,7 @@
         <el-button type="info" @click="reset()">↺ Reset</el-button>
         <el-button type="info" @click="stop()">✖ Stop</el-button>
         <el-button type="info" @click="open('https://github.com/Tumiz/DrivingSchool')">? Help</el-button>
-        <span class="demonstration">car id ${car.id} / ${number} cars x:${car.x}, y:${car.y} ✔:${car.success_counts} ✘:${car.failure_counts}</span>
+        <span class="demonstration">Object ${car.id} / ${number} cars x:${car.x}, y:${car.y} ✔:${car.success_counts} ✘:${car.failure_counts}</span>
         <el-form :inline="true" :model="car" class="demo-form-inline">
             <el-form-item label="Front Wheel Angle">
                 <el-input v-model="car.front_wheel_angle"></el-input>
@@ -31,12 +31,7 @@
         </el-form>
     </div>
     <div id="canvas"></div>
-    <div id="chart">
-        <canvas id="velocity" class="el-chart"></canvas>
-        <canvas id="acceleration" class="el-chart"></canvas>
-    </div>
 </body>
-<script src="static/js/Chart.bundle.min.js"></script>
 <script src="static/js/vue.js"></script>
 <script src="static/js/index.js"></script>
 <script src="static/js/three.min.js"></script>

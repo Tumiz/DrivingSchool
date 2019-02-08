@@ -1,29 +1,14 @@
-var scene,renderer,grid,cars,lines,camera,xAxis,yAxis,zAxis,point,points,raycaster,lookAtCenter,preX,preY,container,car
-var mousePressed=false
+var scene,renderer,grid,objects,camera,xAxis,yAxis,zAxis,raycaster,lookAtCenter,preX,preY,container,car,flag
 var onPickedObj=false
 var cameras=new Array
 var pickedObj=null
 var mouse = new THREE.Vector2()
 var origin=new THREE.Vector3(0,0,0)
 var activeViewPort=0
-var grid
-var colors
-var mode=0
-var vertices=new Array
-var fortime=0,arraytime=0
 init();
 animate();
 
 function init() {
-    colors={
-        "Pedestrian":new THREE.Color("skyblue"),
-        "Motobike":new THREE.Color("white"),
-        "StaticObstacle":new THREE.Color("grey"),
-        "Car":new THREE.Color("#00ff00"),
-        "undefined":new THREE.Color("#00ff00"),
-        "selected":new THREE.Color("red")
-    }
-
     xAxis=new THREE.Vector3(1,0,0)
     yAxis=new THREE.Vector3(0,1,0)
     zAxis=new THREE.Vector3(0,0,1)
@@ -41,13 +26,13 @@ function init() {
 
     scene = new THREE.Scene()
     LoadCar()
-    loadMap()
+
     cameras[0] = new THREE.PerspectiveCamera( 60, container.offsetWidth*0.5 / container.offsetHeight, 0.01, 6000 )
     cameras[0].up.set(0,0,1)
     cameras[0].position.set(-4,0,2)
-    cameras[0].lookAt(1000,0,0)
+    lookAtCenter=new Sphere()
+    cameras[0].lookAt(lookAtCenter.position)
     cameras[0].zoom=1
-    lookAtCenter=origin.clone()
 
     cameras[1] = new THREE.OrthographicCamera( container.offsetWidth/-4, container.offsetWidth/4, container.offsetHeight/2, container.offsetHeight/-2, 0.01, 6000 )
     cameras[1].up.set(1,0,0)
@@ -56,17 +41,16 @@ function init() {
     cameras[1].zoom=5
     cameras[1].updateProjectionMatrix()
 
-    var light = new THREE.AmbientLight( 0xffffff )
-    scene.add(light)
+    var light_ambient = new THREE.AmbientLight( 0xffffff )
+    var light_directional = new THREE.DirectionalLight( 0xffffff, 0.5 );
+    scene.add(light_ambient,light_directional)
 
-    cars=new THREE.Object3D()
+    objects=new THREE.Object3D()
     grid=new Grid(1000,200)
     plane=new Plane(1000)
-
-    points=new THREE.Points()
-    points.material=new THREE.PointsMaterial({color:0x409EFF,sizeAttenuation:false,size:2})
-
-    scene.add(cars,new Axis(),grid,points)
+    flag=new Flag()
+    objects.add(flag)
+    scene.add(objects,new Axis(),grid,lookAtCenter)
 
     activeViewPort=1
     camera=cameras[1]
@@ -99,12 +83,12 @@ function render() {
 
 function pickObj(mouse,camera){
     raycaster.setFromCamera( mouse, camera )
-    var intersects = raycaster.intersectObjects(cars.children,true)
+    var intersects = raycaster.intersectObjects(objects.children,true)
     console.log(intersects.length)
     if(intersects.length>0){
         var obj=intersects[0].object.parent
-        cameras[0].position.set(-4,0,3)
         obj.add(cameras[0])
+        cameras[0].position.set(-4,0,3)
         return obj
     }
     else
@@ -203,12 +187,18 @@ function LoadCar(position){
     );
 }
 
-function loadMap(){
-    vertices=new Array
-    vertices.push(
-        new THREE.Vector3(0,-2,0),
-        new THREE.Vector3(20,-2,0),
-        new THREE.Vector3(30,3,0))
-    line1=Line(vertices,"#eeeeee")
-    scene.add(line1)
+function Flag(){
+    var material=new THREE.MeshStandardMaterial({color:"#E9967A"})
+    var g_cylinder=new THREE.CylinderGeometry(0.05,0.5,2,32)
+    var obj=new THREE.Mesh(g_cylinder,material)
+    obj.rotation.x=Math.PI/2
+    obj.position.z=1
+    return new THREE.Object3D().add(obj)
+}
+
+function Sphere(){
+    var material=new THREE.MeshStandardMaterial({color:"green"})
+    var geometry=new THREE.SphereGeometry(0.1,0.1,32,32)
+    var obj=new THREE.Mesh(geometry,material)
+    return obj
 }

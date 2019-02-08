@@ -50,10 +50,10 @@ new Vue({
             var data = msg.data
             switch(type){
                 case "timer":
-                    var obj = cars.getObjectById(data.id)
+                    var obj = objects.getObjectById(data.id)
                     if (!obj && car) {
                         obj = car.clone()
-                        cars.add(obj)
+                        objects.add(obj)
                     }
                     if (obj) {
                         obj.position.x = data.x
@@ -68,7 +68,7 @@ new Vue({
                         this.car.y = data.y.toPrecision(4)
                         this.car.success_counts=data.success_counts
                         this.car.failure_counts=data.failure_counts
-                        this.number= cars.children.length
+                        this.number= objects.children.length
                     }
                     break
                 case "create":
@@ -78,14 +78,14 @@ new Vue({
                         this.car.front_wheel_angle = data.front_wheel_angle
                     }
                     break
-                case "cars number":
+                case "objects number":
                     this.number=data
                     break
                 case "status":
-                    var obj = cars.getObjectById(data.id)
+                    var obj = objects.getObjectById(data.id)
                     if (!obj && car) {
                         obj = car.clone()
-                        cars.add(obj)
+                        objects.add(obj)
                     }
                     if (obj) {
                         obj.position.x = data.x
@@ -117,9 +117,9 @@ new Vue({
                 this.send("start", this.car)
         },
         reset() {
-            while (cars.children.length > 0)
-            cars.remove(cars.children[0])
-            this.number = cars.children.length
+            while (objects.children.length > 0)
+            objects.remove(objects.children[0])
+            this.number = objects.children.length
             this.send("reset", "")
         },
         stop() {
@@ -147,26 +147,21 @@ new Vue({
         mouseDownHandler(event) {
             activeViewPort = currentViewPort(event.offsetX, event.offsetY)
             var obj = pickObj(mouse, camera)
-            mousePressed = true
             preX = event.offsetX
             preY = event.offsetY
             if (obj == null && event.button == 0 && event.ctrlKey == 1) {
                 point = pickPoint(mouse, camera)
                 console.log("pick", JSON.stringify(point))
                 if (point !== null) {
-                    if (mode === 0) {
-                        obj = car.clone()
-                        obj.position.copy(point)
-                        cars.add(obj)
-                        this.number = cars.children.length
-                        this.send("create", {
-                            id: obj.id,
-                            x: obj.position.x,
-                            y: obj.position.y,
-                        })
-                    } else {
-                        vertices.push(point)
-                    }
+                    obj = car.clone()
+                    obj.position.copy(point)
+                    objects.add(obj)
+                    this.number = objects.children.length
+                    this.send("create", {
+                        id: obj.id,
+                        x: obj.position.x,
+                        y: obj.position.y,
+                    })
                 }
             }
             if (obj !== null) {
@@ -182,11 +177,11 @@ new Vue({
         },
         mouseUpHandler(event) {
             onPickedObj = false
-            mousePressed = false
         },
         mouseMoveHandler(event) {
-            if (!mousePressed)
+            if(event.buttons!=1){
                 return
+            }       
             activeViewPort = currentViewPort(event.offsetX, event.offsetY)
             var dx = event.offsetX - preX
             var dy = event.offsetY - preY
@@ -194,26 +189,27 @@ new Vue({
             preY = event.offsetY
             switch (activeViewPort) {
                 case 0:
-                    var distance = camera.position.length()
-                    if (event.button == 0 && event.shiftKey == 1) {
-                        camera.position.set(0, 0, 0)
+                    if (event.shiftKey == 1) {
+                        var vector=camera.position.clone()
+                        var distance = camera.position.clone().sub(lookAtCenter.position).length()
+                        camera.translateOnAxis(zAxis, -distance)
                         if (Math.abs(dy) > Math.abs(dx)) {
-                            camera.rotateOnAxis(xAxis, -dy / 1000)
+                            console.log("y")
+                            camera.rotateOnAxis(xAxis,-dy / 1000)
                         } else {
-                            camera.rotateOnAxis(yAxis, -dx / 1000)
+                            console.log("x")
+                            camera.rotateOnAxis(yAxis,-dx / 1000)
                         }
                         camera.translateOnAxis(zAxis, distance)
-                        camera.lookAt(camera.parent.position)
-                    }
-                    else {
-                        lookAtCenter.sub(camera.position)
+                    }else{
+                        lookAtCenter.position.sub(camera.position)
                         camera.translateOnAxis(xAxis, -dx / 10)
                         camera.translateOnAxis(yAxis, dy / 10)
-                        lookAtCenter.add(camera.position)
+                        lookAtCenter.position.add(camera.position)
                     }
                     return
                 case 1:
-                    if (onPickedObj && event.button === 0) {
+                    if (onPickedObj) {
                         point = pickPoint(mouse, camera)
                         pickedObj.position.x=point.x
                         pickedObj.position.y=point.y
@@ -226,10 +222,8 @@ new Vue({
                         })
                     }
                     else {
-                        lookAtCenter.sub(camera.position)
                         camera.translateOnAxis(xAxis, -dx / camera.zoom)
                         camera.translateOnAxis(yAxis, dy / camera.zoom)
-                        lookAtCenter.add(camera.position)
                     }
                     return
                 default:
@@ -239,13 +233,9 @@ new Vue({
         mouseDoubleClickHandler(event) {
             console.log("dbclick")
             activeViewPort = currentViewPort(event.offsetX, event.offsetY)
-            if (event.button === 0) {
-                if (activeViewPort === 1) {
-                    camera.position.set(0, 0, 60)
-                    console.log(activeViewPort, camera.position)
-                }
-                camera.lookAt(origin)
-                lookAtCenter.copy(origin)
+            if (activeViewPort==1&&event.button === 0) {
+                camera.position.set(0, 0, 60)
+                camera.lookAt(0,0,0)
             }
         },
         keyDownHandler(event) {
