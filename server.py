@@ -19,9 +19,9 @@ class Session():
         self.cars=dict()
         self.timer=PeriodicCallback(self.on_timer,50)
         self.users=set()
-        self.viz=[]
-        self.plot_velocity=[]
-        self.plot_round=[]
+        self.viz=visdom.Visdom()
+        self.plot_velocity=self.viz.line(X=[0],Y=[0])
+        self.plot_round=self.viz.line(X=[0],Y=[0])
 
     def publish(self,type,data):
         msg={"type":type,"data":data}
@@ -32,18 +32,10 @@ class Session():
         for id in self.cars:
             car=self.cars[id]
             car.step()
-            if(not self.viz):
-                self.viz=visdom.Visdom()
-            if(self.plot_velocity):
-                self.viz.line(X=car.t_history,Y=car.v_history,win=self.plot_velocity)
-            else:
-                self.plot_velocity=self.viz.line(X=car.t_history,Y=car.v_history)
+            self.viz.line(X=car.t_history,Y=car.v_history,win=self.plot_velocity)
             if abs(car.v)<0.001 and abs(car.x-30)<1:
                 car.success_counts+=1
-                if(not self.plot_round):
-                    self.plot_round=self.viz.line(X=[car.success_counts],Y=[car.t])
-                else:
-                    self.viz.line(X=[car.success_counts],Y=[car.t],win=self.plot_round,update="append")
+                self.viz.line(X=[car.success_counts],Y=[car.t],win=self.plot_round,update="append")
                 car.reset()
             elif car.x<-10 or car.x>50:
                 car.failure_counts+=1
@@ -132,7 +124,7 @@ class SimHandler(WebSocketHandler):
         return True  # 允许WebSocket的跨域请求
 
 if __name__ == '__main__':
-    subprocess.Popen("visdom")
+    # subprocess.call("visdom")
     tornado.options.parse_command_line()
     app = tornado.web.Application([
             (r"/", IndexHandler),
