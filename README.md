@@ -15,9 +15,13 @@ DrivingSchool是一个轻量级的基于web开发的3D仿真软件。目标是�
 
     pip install tornado
 
-2. (optional) Install the deep learning platform - pytorch from https://pytorch.org/get-started/locally/
+2. Install the deep learning platform - pytorch from https://pytorch.org/get-started/locally/
 
-3. Download the codes of DrivingSchool:
+3. Install the visualization tool - visdom:
+
+    pip install visdom
+
+4. Download the codes of DrivingSchool:
 
     git clone https://github.com/Tumiz/DrivingSchool.git
 
