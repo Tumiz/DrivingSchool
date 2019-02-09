@@ -124,7 +124,6 @@ class SimHandler(WebSocketHandler):
         return True  # 允许WebSocket的跨域请求
 
 if __name__ == '__main__':
-    # subprocess.call("visdom")
     tornado.options.parse_command_line()
     app = tornado.web.Application([
             (r"/", IndexHandler),
@@ -137,4 +136,5 @@ if __name__ == '__main__':
         )
     http_server = tornado.httpserver.HTTPServer(app)
     http_server.listen(8080)
+    print("Driving School is ready. Now you can navigate to http://localhost:8080")
     IOLoop.current().start()
