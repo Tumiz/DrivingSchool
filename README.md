@@ -4,6 +4,10 @@ DrivingSchool is a lightweight web-based 3D simulator. It is aimed at providing 
 
 DrivingSchool是一个轻量级的基于web开发的3D仿真软件。目标是为Python实现的无人车强化学习算法提供简单易用的仿真环境。
 
+## Examples
+An AI controlled vehicle run along axis x's direction, and find a way to arrive the point of (30,0) from any position on the axis x. You can see the following video for details.
+http://v.youku.com/v_show/id_XNDA1Mzk1MjA5Ng==.html
+
 ## Requirements
 
 * Python: >=3.0
@@ -27,7 +31,11 @@ DrivingSchool是一个轻量级的基于web开发的3D仿真软件。目标是�
 
 ## Run
 
-1. Open a terminal in the folder of DrivingSchool and run the following command:
+1. Open a terminal in any directory and run command:
+
+    visdom
+
+1. Open an another terminal in the folder of DrivingSchool and run command:
 
     python server.py
 
