@@ -134,6 +134,7 @@ new Vue({
             camera = cameras[activeViewPort]
             switch (activeViewPort) {
                 case 0:
+                    lookAtCenter.translateOnAxis(zAxis,event.deltaY/12)
                     camera.translateOnAxis(zAxis, -event.deltaY / 12)
                     break
                 case 1:
@@ -190,22 +191,17 @@ new Vue({
             switch (activeViewPort) {
                 case 0:
                     if (event.shiftKey == 1) {
-                        var vector=camera.position.clone()
-                        var distance = camera.position.clone().sub(lookAtCenter.position).length()
+                        var distance = lookAtCenter.position.length()
                         camera.translateOnAxis(zAxis, -distance)
                         if (Math.abs(dy) > Math.abs(dx)) {
-                            console.log("y")
                             camera.rotateOnAxis(xAxis,-dy / 1000)
                         } else {
-                            console.log("x")
-                            camera.rotateOnAxis(yAxis,-dx / 1000)
+                            camera.rotateOnWorldAxis(zAxis,-dx / 1000)
                         }
                         camera.translateOnAxis(zAxis, distance)
                     }else{
-                        lookAtCenter.position.sub(camera.position)
                         camera.translateOnAxis(xAxis, -dx / 10)
                         camera.translateOnAxis(yAxis, dy / 10)
-                        lookAtCenter.position.add(camera.position)
                     }
                     return
                 case 1:
@@ -231,11 +227,17 @@ new Vue({
             }
         },
         mouseDoubleClickHandler(event) {
-            console.log("dbclick")
             activeViewPort = currentViewPort(event.offsetX, event.offsetY)
-            if (activeViewPort==1&&event.button === 0) {
-                camera.position.set(0, 0, 60)
-                camera.lookAt(0,0,0)
+            switch (activeViewPort) {
+                case 0:
+                    camera.lookAt(0,0,0)
+                    lookAtCenter.position.set(0,0,-camera.position.length())
+                    break
+                case 1:
+                    camera.lookAt(0,0,0)
+                    break
+                default:
+                    break
             }
         },
         keyDownHandler(event) {

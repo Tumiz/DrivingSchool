@@ -30,8 +30,10 @@ function init() {
     cameras[0] = new THREE.PerspectiveCamera( 60, container.offsetWidth*0.5 / container.offsetHeight, 0.01, 6000 )
     cameras[0].up.set(0,0,1)
     cameras[0].position.set(-4,0,2)
-    lookAtCenter=new Sphere()
-    cameras[0].lookAt(lookAtCenter.position)
+    lookAtCenter=new Axis(0.2,1)
+    lookAtCenter.position.set(0,0,-cameras[0].position.length())
+    cameras[0].add(lookAtCenter)
+    cameras[0].lookAt(0,0,0)
     cameras[0].zoom=1
 
     cameras[1] = new THREE.OrthographicCamera( container.offsetWidth/-4, container.offsetWidth/4, container.offsetHeight/2, container.offsetHeight/-2, 0.01, 6000 )
@@ -50,7 +52,7 @@ function init() {
     plane=new Plane(1000)
     flag=new Flag()
     objects.add(flag)
-    scene.add(objects,new Axis(),grid,lookAtCenter)
+    scene.add(objects,new Axis(2,2),grid)
 
     activeViewPort=1
     camera=cameras[1]
@@ -88,7 +90,9 @@ function pickObj(mouse,camera){
     if(intersects.length>0){
         var obj=intersects[0].object.parent
         obj.add(cameras[0])
-        cameras[0].position.set(-4,0,3)
+        cameras[0].position.set(-4,0,2)
+        lookAtCenter.position.set(0,0,-cameras[0].position.length())
+        cameras[0].lookAt(obj.position)
         return obj
     }
     else
@@ -141,19 +145,7 @@ function Grid(size,divs){
     obj.rotation.x=Math.PI/2
     return obj
 }
-function Axis(){
-    var line_y = new LineSegment(
-                [0, -2, 0],
-                [0, 6, 0],
-                {color: "#00FF7F",linewidth:2}
-                )
-    var line_x=new LineSegment(
-                [-2, 0, 0],
-                [6, 0, 0],
-                {color: "red",linewidth:2}
-                )
-    return new THREE.Object3D().add(line_x,line_y)
-}
+
 function Line(vertices,color){
     var geometry=new THREE.Geometry()
     geometry.vertices=vertices
@@ -200,5 +192,26 @@ function Sphere(){
     var material=new THREE.MeshStandardMaterial({color:"green"})
     var geometry=new THREE.SphereGeometry(0.1,0.1,32,32)
     var obj=new THREE.Mesh(geometry,material)
+    return obj
+}
+
+function Axis(size,width){
+    var line_x=new LineSegment(
+        [-size/2, 0, 0],
+        [size, 0, 0],
+        {color: "red",linewidth:width}
+        )
+    var line_y = new LineSegment(
+        [0, -size/2, 0],
+        [0, size, 0],
+        {color: "green",linewidth:width}
+        )
+    var line_z=new LineSegment(
+        [0, 0, -size/2],
+        [0, 0, size],
+        {color: "blue",linewidth:width}
+        )
+    var obj=new THREE.Object3D()
+    obj.add(line_x,line_y,line_z)
     return obj
 }
