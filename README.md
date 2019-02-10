@@ -8,7 +8,7 @@ DrivingSchool是一个轻量级的基于web开发的3D仿真软件。目标是�
 
 ## Examples
 
-An AI controlled vehicle run along axis x's direction, and find a way to arrive the point of (30,0) from any position on the axis x. You can see [video](http://v.youku.com/v_show/id_XNDA1Mzk1MjA5Ng==.html) for details.
+An AI controlled vehicle run along axis x's direction, and find a way to arrive the point of (30,0) from any position on the axis x. You can see [video](https://v.youku.com/v_show/id_XNDA1NTQ3NzY4MA==.html?spm=a2h3j.8428770.3416059.1) for details.
 
 ## Requirements
 
