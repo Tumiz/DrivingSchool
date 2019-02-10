@@ -1,5 +1,4 @@
-var scene,renderer,grid,objects,camera,xAxis,yAxis,zAxis,raycaster,lookAtCenter,preX,preY,container,car,flag
-var onPickedObj=false
+var scene,renderer,grid,objects,camera,xAxis,yAxis,zAxis,raycaster,lookAtCenter,preX,preY,container,car_model,flag
 var cameras=new Array
 var pickedObj=null
 var mouse = new THREE.Vector2()
@@ -168,7 +167,7 @@ function LoadCar(position){
     loader.load(
         "static/res/car.json",
         function ( obj ) {
-            car=obj
+            car_model=obj
         },
         function ( xhr ) {
             console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
@@ -213,5 +212,35 @@ function Axis(size,width){
         )
     var obj=new THREE.Object3D()
     obj.add(line_x,line_y,line_z)
+    return obj
+}
+
+function Car(){
+    var obj=car_model.clone()
+    obj.type="Car"
+    obj.v=0
+    obj.vx=0
+    obj.vy=0
+    obj.a=0
+    obj.front_wheel_angle=0
+    obj.wheel_base=2.7
+    obj.ai=false
+    obj.step=function(dt){
+        dt=dt/1000
+        obj.vx=obj.v*Math.cos(obj.rotation.z)
+        obj.vy=obj.v*Math.sin(obj.rotation.z)
+        obj.position.x+=obj.vx*dt
+        obj.position.y+=obj.vy*dt
+        obj.v+=obj.a*dt
+        obj.rotation.z+=obj.v/obj.wheel_base*Math.tan(obj.front_wheel_angle)*dt
+    }
+    obj.reset=function(){
+        obj.v=0
+        obj.vx=0
+        obj.vy=0
+        obj.a=0
+        obj.front_wheel_angle=0
+        obj.position.x=0
+    }
     return obj
 }
