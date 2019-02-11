@@ -78,12 +78,12 @@ new Vue({
                 if (obj.type == "Car") {
                     if(obj.ai){
                         var restart=false
-                        var x_gap=Math.abs(obj.position.x-flag.position.x)
+                        var x_gap=obj.position.x-flag.position.x
                         if(x_gap>50){
                             this.car.failure_counts+=1
                             restart=true
                         }
-                        else if(x_gap<0.1&&Math.abs(obj.v)<0.001){
+                        else if(Math.abs(x_gap)<0.1&&Math.abs(obj.v)<0.01){
                             this.car.success_counts+=1
                             restart=true
                         }
@@ -92,7 +92,7 @@ new Vue({
                         }
                         data={
                             id:obj.id,
-                            x_gap:obj.position.x-flag.position.x,
+                            x_gap:x_gap,
                             v:obj.v,
                             t:this.time,
                         }
@@ -156,6 +156,7 @@ new Vue({
                     if (point !== null) {
                         pickedObj = new Car()
                         pickedObj.position.copy(point)
+                        pickedObj.add(cameras[0])
                         objects.add(pickedObj)
                         this.number = objects.children.length
                     }

@@ -52,11 +52,11 @@ class Planner(nn.Module):
         self.experience.append([self.x_gap, self.v_target, R])
 
     def decision(self, x_gap, v):  # return A
-        if(abs(x_gap)< abs(self.x_gap) and random.random()<0.98):
+        if(abs(x_gap)< abs(self.x_gap)):
             self.update_experience(x_gap)
             self.v_target = self.q(x_gap)
         else:
-            self.v_target = random.uniform(-2, 2)
+            self.v_target = random.triangular(-1, 3,self.q(x_gap))
         self.x_gap = x_gap
         self.train()
 
