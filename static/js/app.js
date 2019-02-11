@@ -48,6 +48,7 @@ new Vue({
                     var obj=objects.getObjectById(data.id)
                     if(obj&&obj.type=="Car")
                         obj.v=data.v
+                        obj.step(100)
                     break
                 default:
                     break
@@ -75,7 +76,6 @@ new Vue({
             for (var i = 0, l = objects.children.length; i < l; i++) {
                 var obj = objects.children[i]
                 if (obj.type == "Car") {
-                    obj.step(100)
                     if(obj.ai){
                         var restart=false
                         var x_gap=Math.abs(obj.position.x-flag.position.x)
@@ -94,6 +94,7 @@ new Vue({
                             id:obj.id,
                             x_gap:obj.position.x-flag.position.x,
                             v:obj.v,
+                            t:this.time,
                         }
                         this.send("timer",data)
                     }     
