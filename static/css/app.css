@@ -127,3 +127,19 @@ body {
     border: 0px solid #3b3c3e;
     color: #cbccd0;
 }
+.el-slider{
+    display: inline-block;
+}
+.el-slider__bar{
+    height: 2px;
+}
+.el-slider__runway {
+    width: 100px;
+    height: 2px;
+}
+.el-slider__button {
+    width: 8px;
+    height: 8px;
+    border: 0px solid #409EFF;
+    background-color: #409eff;
+}

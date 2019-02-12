@@ -32,8 +32,7 @@ class Planner(nn.Module):
         self.viz=visdom.Visdom()
         self.plot_velocity=self.viz.line(X=[0],Y=[0])
         self.v_history=[]
-        self.c_history=[]
-        self.counts=0
+        self.t_history=[]
 
     def forward(self, x):
         x = F.relu(self.layer1(x))
@@ -51,22 +50,21 @@ class Planner(nn.Module):
                 del self.experience[i]
         self.experience.append([self.x_gap, self.v_target, R])
 
-    def decision(self, x_gap, v):  # return A
+    def decision(self, x_gap, greedy, v, t):  # return A
         if(abs(x_gap)< abs(self.x_gap)):
             self.update_experience(x_gap)
-            self.v_target = self.q(x_gap)
-        else:
-            self.v_target = random.triangular(-1, 3,self.q(x_gap))
+        self.v_target = self.q(x_gap)+random.gauss(0,greedy)
+        self.v_target=min(3,self.v_target)
+        self.v_target=max(-1,self.v_target)
         self.x_gap = x_gap
         self.train()
 
         self.v_history.append(v)
-        self.c_history.append(self.counts)
+        self.t_history.append(t)
         if(len(self.v_history)>300):
             del self.v_history[0]
-            del self.c_history[0]
-        self.viz.line(X=self.c_history,Y=self.v_history,win=self.plot_velocity)
-        self.counts+=1
+            del self.t_history[0]
+        self.viz.line(X=self.t_history,Y=self.v_history,win=self.plot_velocity)
         return self.v_target
 
     def train(self):

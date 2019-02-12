@@ -14,19 +14,20 @@
         <el-button type="info" @click="reset()">↺ Reset</el-button>
         <el-button type="info" @click="stop()">✖ Stop</el-button>
         <el-button type="info" @click="open('https://github.com/Tumiz/DrivingSchool')">? Help</el-button>
-        <span class="demonstration">Object ${car.id} / ${number} objects x:${car.x}, y:${car.y} ✔:${car.success_counts} ✘:${car.failure_counts}</span>
-        <el-form :inline="true" :model="car" class="demo-form-inline">
+        <span class="demonstration">Object ${pickedObj.id} / ${number} objects x:${pickedObj.x}, y:${pickedObj.y} ✔:${pickedObj.success_counts} ✘:${pickedObj.failure_counts} Greedy:</span>
+        <el-slider v-model="pickedObj.greedy" :format-tooltip="formatTooltip"></el-slider>
+        <el-form :inline="true" :model="pickedObj" class="demo-form-inline">
             <el-form-item label="Front Wheel Angle">
-                <el-input v-model="car.front_wheel_angle"></el-input>
+                <el-input v-model="pickedObj.front_wheel_angle"></el-input>
             </el-form-item>
             <el-form-item label="Velocity">
-                <el-input v-model="car.v"></el-input>
+                <el-input v-model="pickedObj.v"></el-input>
             </el-form-item>
             <el-form-item label="Acceleration">
-                <el-input v-model="car.a"></el-input>
+                <el-input v-model="pickedObj.a"></el-input>
             </el-form-item>
             <el-form-item>
-                <el-checkbox v-model="car.ai" label="AI" @change="changeAIstate"></el-checkbox>
+                <el-checkbox v-model="pickedObj.ai" label="AI" @change="changeAIstate"></el-checkbox>
             </el-form-item>
         </el-form>
     </div>

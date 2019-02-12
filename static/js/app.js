@@ -3,7 +3,7 @@ new Vue({
     el: '#app',
     data: function () {
         return {
-            car: {
+            pickedObj: {
                 id: 0,
                 wheel_base: 2.7,
                 v: 0,
@@ -12,9 +12,12 @@ new Vue({
                 y: 0,
                 a: 0,
                 ai:  false,
+                greedy:10,
                 success_counts: 0,
                 failure_counts: 0,
             },
+            need_response:false,
+            time:0,
             timer: 0,
             number: 0,
             ws: []
@@ -32,6 +35,9 @@ new Vue({
         this.connect()
     },
     methods: {
+        formatTooltip(val) {
+            return val / 100
+        },
         send(type, data) {
             var request = {
                 type: type,
@@ -45,10 +51,14 @@ new Vue({
             var data = msg.data
             switch (type) {
                 case "timer":
-                    var obj=objects.getObjectById(data.id)
-                    if(obj&&obj.type=="Car")
-                        obj.v=data.v
-                        obj.step(100)
+                    if(this.need_response){
+                        var obj=objects.getObjectById(data.id)
+                        if(obj&&obj.type=="Car"){
+                            obj.v=data.v
+                            obj.step(100)
+                        }
+                        this.need_response=false
+                    }
                     break
                 default:
                     break
@@ -73,37 +83,47 @@ new Vue({
                 this.timer = setInterval(this.onTimer, 100)
         },
         onTimer() {
-            for (var i = 0, l = objects.children.length; i < l; i++) {
-                var obj = objects.children[i]
-                if (obj.type == "Car") {
-                    if(obj.ai){
-                        var restart=false
-                        var x_gap=obj.position.x-flag.position.x
-                        if(x_gap>50){
-                            this.car.failure_counts+=1
-                            restart=true
-                        }
-                        else if(Math.abs(x_gap)<0.1&&Math.abs(obj.v)<0.01){
-                            this.car.success_counts+=1
-                            restart=true
-                        }
-                        if(restart){
-                            obj.reset()
-                        }
-                        data={
-                            id:obj.id,
-                            x_gap:x_gap,
-                            v:obj.v,
-                            t:this.time,
-                        }
-                        this.send("timer",data)
-                    }     
-                    if (this.car.id == obj.id){
-                        this.car.v = obj.v
-                        this.car.a = obj.a
-                        this.car.front_wheel_angle=obj.front_wheel_angle
-                        this.car.x=obj.position.x.toPrecision(4)
-                        this.car.y=obj.position.y.toPrecision(4)}
+            if(!this.need_response){
+                for (var i = 0, l = objects.children.length; i < l; i++) {
+                    var obj = objects.children[i]
+                    if (obj.type == "Car") {
+                        if(obj.ai){
+                            var restart=false
+                            var x_gap=obj.position.x-flag.position.x
+                            if(x_gap>50){
+                                this.pickedObj.failure_counts+=1
+                                restart=true
+                            }
+                            else if(Math.abs(x_gap)<0.1&&Math.abs(obj.v)<0.01){
+                                this.pickedObj.success_counts+=1
+                                restart=true
+                            }
+                            if(restart){
+                                obj.reset()
+                                this.time=0
+                            }else{
+                                data={
+                                    id:obj.id,
+                                    x_gap:x_gap,
+                                    v:obj.v,
+                                    t:this.time,
+                                    greedy:this.pickedObj.greedy/100
+                                }
+                                this.send("timer",data)
+                                this.need_response=true
+                                this.time+=1
+                            }
+                        }     
+                    }
+                }
+            }
+            if(pickedObj){
+                this.pickedObj.x=pickedObj.position.x.toPrecision(4)
+                this.pickedObj.y=pickedObj.position.y.toPrecision(4)
+                if (pickedObj.type == "Car"){
+                    this.pickedObj.v = pickedObj.v
+                    this.pickedObj.a = pickedObj.a
+                    this.pickedObj.front_wheel_angle=pickedObj.front_wheel_angle
                 }
             }
         },
@@ -130,7 +150,6 @@ new Vue({
         },
         wheelHandler(event) {
             activeViewPort = currentViewPort(event.offsetX, event.offsetY)
-            console.log(activeViewPort, event.deltaY)
             camera = cameras[activeViewPort]
             switch (activeViewPort) {
                 case 0:
@@ -161,12 +180,13 @@ new Vue({
                         this.number = objects.children.length
                     }
                 }
-            }
-            if(pickedObj && pickedObj.type=="Car"){
-                this.car.id=pickedObj.id
-                this.car.x=pickedObj.position.x.toPrecision(4)
-                this.car.y=pickedObj.position.y.toPrecision(4)
-                this.car.ai=pickedObj.ai
+            }else{
+                this.pickedObj.id=pickedObj.id
+                this.pickedObj.x=pickedObj.position.x.toPrecision(4)
+                this.pickedObj.y=pickedObj.position.y.toPrecision(4)
+                if(pickedObj.type=="Car"){
+                    this.pickedObj.ai=pickedObj.ai
+                }
             }
         },
         mouseUpHandler(event) {
@@ -202,8 +222,8 @@ new Vue({
                         point = pickPoint(mouse, camera)
                         pickedObj.position.x = point.x
                         pickedObj.position.y = point.y
-                        this.car.x = point.x.toPrecision(4)
-                        this.car.y = point.y.toPrecision(4)
+                        this.pickedObj.x = point.x.toPrecision(4)
+                        this.pickedObj.y = point.y.toPrecision(4)
                     }
                     else {
                         camera.translateOnAxis(xAxis, -dx / camera.zoom)
@@ -243,7 +263,7 @@ new Vue({
                     if(pickedObj){
                         scene.add(cameras[0])
                         objects.remove(pickedObj)
-                        this.car.id=0
+                        this.pickedObj.id=0
                         this.number=objects.children.length
                     }
                     break
@@ -256,7 +276,7 @@ new Vue({
                             pickedObj.a = 0
                         else
                             pickedObj.a += 0.01
-                        this.car.a = pickedObj.a
+                        this.pickedObj.a = pickedObj.a
                     }
                     break
                 case 83://S:
@@ -268,7 +288,7 @@ new Vue({
                             pickedObj.a = 0
                         else
                             pickedObj.a -= 0.01
-                        this.car.a = pickedObj.a
+                        this.pickedObj.a = pickedObj.a
                     }
                     break
                 case 68://D:
@@ -280,7 +300,7 @@ new Vue({
                             pickedObj.front_wheel_angle = 0
                         else
                             pickedObj.front_wheel_angle -= 0.01
-                        this.car.front_wheel_angle = pickedObj.front_wheel_angle
+                        this.pickedObj.front_wheel_angle = pickedObj.front_wheel_angle
                     }
                     break
                 case 65://A:
@@ -292,7 +312,7 @@ new Vue({
                             pickedObj.front_wheel_angle = 0
                         else
                             pickedObj.front_wheel_angle += 0.01
-                        this.car.front_wheel_angle = pickedObj.front_wheel_angle
+                        this.pickedObj.front_wheel_angle = pickedObj.front_wheel_angle
                     }
                     break
                 default:

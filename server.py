@@ -38,11 +38,13 @@ class SimHandler(WebSocketHandler):
         if(request_type=="timer"): 
             id=int(request_data["id"])
             v=float(request_data["v"])
+            t=float(request_data["t"])
+            greedy=float(request_data["greedy"])
             x_gap=float(request_data["x_gap"])
             if(self.agents.__contains__(id)):
                 response_data=dict()
                 response_data["id"]=id
-                response_data["v"]=self.agents[id].decision(x_gap,v)
+                response_data["v"]=self.agents[id].decision(x_gap,greedy,v,t)
                 self.publish("timer",response_data)
             else:
                 self.agents[id]=Planner()
