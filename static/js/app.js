@@ -54,7 +54,7 @@ new Vue({
                     if(this.need_response){
                         var obj=objects.getObjectById(data.id)
                         if(obj&&obj.type=="Car"){
-                            obj.v=data.v
+                            obj.a=data.a
                             obj.step(100)
                         }
                         this.need_response=false
@@ -81,6 +81,7 @@ new Vue({
                 this.connect()
             if (this.ws.readyState == 1 && this.timer == 0)
                 this.timer = setInterval(this.onTimer, 100)
+            this.need_response=false
         },
         onTimer() {
             if(!this.need_response){
@@ -88,31 +89,28 @@ new Vue({
                     var obj = objects.children[i]
                     if (obj.type == "Car") {
                         if(obj.ai){
-                            var restart=false
+                            R=0
                             var x_gap=obj.position.x-flag.position.x
-                            if(x_gap>50){
+                            if(Math.abs(x_gap)>50){
                                 this.pickedObj.failure_counts+=1
-                                restart=true
-                            }
-                            else if(Math.abs(x_gap)<0.1&&Math.abs(obj.v)<0.01){
-                                this.pickedObj.success_counts+=1
-                                restart=true
-                            }
-                            if(restart){
+                                R=-1
                                 obj.reset()
-                                this.time=0
-                            }else{
-                                data={
-                                    id:obj.id,
-                                    x_gap:x_gap,
-                                    v:obj.v,
-                                    t:this.time,
-                                    greedy:this.pickedObj.greedy/100
-                                }
-                                this.send("timer",data)
-                                this.need_response=true
-                                this.time+=1
                             }
+                            else if(Math.abs(x_gap)<1&&Math.abs(obj.v)<0.1){
+                                this.pickedObj.success_counts+=1
+                                R=1
+                            }
+                            data={
+                                id:obj.id,
+                                x_gap:x_gap,
+                                v:obj.v,
+                                R:R,
+                                t:this.time,
+                                greedy:this.pickedObj.greedy/100
+                            }
+                            this.send("timer",data)
+                            this.need_response=true
+                            this.time+=1
                         }     
                     }
                 }

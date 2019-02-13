@@ -9,20 +9,44 @@ import visdom
 class AI:
 
     def __init__(self):
-        self.actor = Actor()
-        self.critic = Critic()
-        self.x_gap=0
-        self.v=0
-        self.a=0
+        self.actor = Net(2,1,1000)
+        self.critic = Net(2,1,1000)
+        self.x_gap=0.
+        self.v=0.
+        self.a=0.
 
         self.viz=visdom.Visdom()
         self.plot_velocity=self.viz.line(X=[0],Y=[0])
         self.v_history=[]
         self.t_history=[]
 
+    def action(self, x_gap, v):
+        return self.actor(torch.tensor([x_gap,v])).item()
+
+    def quality(self, x_gap, v):
+        return self.critic(torch.tensor([x_gap,v])).item()
+
     def decision(self, x_gap, v, R, t, greedy):  # return A
-        Q=self.critic.value()
-        self.actor.update()
+        Q=R+0.9*self.quality(x_gap,v)
+        for i,e in enumerate(self.critic.experience):
+            if pow(e[0]-self.x_gap,2)+pow(e[1]-self.v,2)<0.0001 and self.quality(e[0],e[1])<Q:
+                del self.critic.experience[i]
+        self.critic.experience.append([self.x_gap,self.v,Q])
+        self.critic.train()
+
+        for i,e in enumerate(self.actor.experience):
+            if pow(e[0]-self.x_gap,2)+pow(e[1]-self.v,2)<0.0001 and e[3]<Q:
+                del self.actor.experience[i]
+        self.actor.experience.append([self.x_gap,self.v,self.a,Q])
+        self.actor.train()
+
+        a=self.action(x_gap,v)+random.gauss(0,greedy)
+        a=max(-1,a)
+        a=min(1,a)
+
+        self.x_gap=x_gap
+        self.v=v
+        self.a=a
 
         self.v_history.append(v)
         self.t_history.append(t)
@@ -30,41 +54,7 @@ class AI:
             del self.v_history[0]
             del self.t_history[0]
         self.viz.line(X=self.t_history,Y=self.v_history,win=self.plot_velocity)
-        return self.v_target
-
-class Actor(Net):
-    def __init__(self):
-        super(Actor, self).__init__(2, 1, 1000)
-        self.x_gap=0
-        self.v=0
-        self.a=0
-        
-    def value(self,x_gap,v):
-        return self(torch.tensor([x_gap,v])).item()
-
-    def update(self,Q):
-        for i,e in enumerate(self.experience):
-            if pow(e[0]-self.x_gap)+pow(e[1]-self.v)+pow(e[2]-self.a)<0.0001 and e[3]<Q:
-                del self.experience[i]
-        self.experience.append([self.x_gap, self.v, self.a, Q])
-        self.train()
-
-    def decision(self,x_gap,v,greedy):
-        self.a=self.value(x_gap,v)+random.gauss(0,greedy)
-        self.a=min(1,self.a)
-        self.a=max(-1,self.a)
-        self.x_gap=x_gap
-        self.v=v
-
-class Critic(Net):
-    def __init__(self):
-        super(Critic, self).__init__(3, 1, 1000)
-
-    def value(self,x_gap,v,a):
-        return self(torch.tensor([x_gap,v,a])).item()
-
-    def update(self,R):
-
+        return a
 
 class Net(nn.Module):
 

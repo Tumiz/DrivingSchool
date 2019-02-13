@@ -85,7 +85,6 @@ function render() {
 function pickObj(mouse,camera){
     raycaster.setFromCamera( mouse, camera )
     var intersects = raycaster.intersectObjects(objects.children,true)
-    console.log(intersects.length)
     if(intersects.length>0){
         var obj=intersects[0].object.parent
         obj.add(cameras[0])

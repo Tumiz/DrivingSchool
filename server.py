@@ -5,7 +5,7 @@ import tornado.options
 import os
 import json
 import time
-from ai import AI,Planner
+from ai import AI
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler,StaticFileHandler
 from tornado.websocket import WebSocketHandler
@@ -41,13 +41,15 @@ class SimHandler(WebSocketHandler):
             t=float(request_data["t"])
             greedy=float(request_data["greedy"])
             x_gap=float(request_data["x_gap"])
+            R=float(request_data["R"])
             if(self.agents.__contains__(id)):
                 response_data=dict()
                 response_data["id"]=id
-                response_data["v"]=self.agents[id].decision(x_gap,greedy,v,t)
+                response_data["a"]=self.agents[id].decision(x_gap,v,R,t,greedy)
+                print("time",t,"\r")
                 self.publish("timer",response_data)
             else:
-                self.agents[id]=Planner()
+                self.agents[id]=AI()
         elif(request_type=="reset"):
             self.agents.clear()
 
