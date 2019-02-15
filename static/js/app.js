@@ -95,10 +95,13 @@ new Vue({
                                 this.pickedObj.failure_counts+=1
                                 R=-1
                                 obj.reset()
+                                this.time=0
                             }
                             else if(Math.abs(x_gap)<1&&Math.abs(obj.v)<0.1){
                                 this.pickedObj.success_counts+=1
                                 R=1
+                                obj.reset()
+                                this.time=0
                             }
                             data={
                                 id:obj.id,

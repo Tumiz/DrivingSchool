@@ -16,9 +16,11 @@ class AI:
         self.a=0.
 
         self.viz=visdom.Visdom()
-        self.plot_velocity=self.viz.line(X=[0],Y=[0])
+        self.plot_v=self.viz.line(X=[0],Y=[0])
+        self.plot_a=self.viz.line(X=[0],Y=[0])
         self.v_history=[]
         self.t_history=[]
+        self.a_history=[]
 
     def action(self, x_gap, v):
         return self.actor(torch.tensor([x_gap,v])).item()
@@ -49,11 +51,18 @@ class AI:
         self.a=a
 
         self.v_history.append(v)
+        self.a_history.append(a)
         self.t_history.append(t)
+        if(R==1 or R==-1):
+            self.v_history=[0]
+            self.a_history=[0]
+            self.t_history=[0]
         if(len(self.v_history)>300):
             del self.v_history[0]
             del self.t_history[0]
-        self.viz.line(X=self.t_history,Y=self.v_history,win=self.plot_velocity)
+            del self.a_history[0]
+        self.viz.line(X=self.t_history,Y=self.v_history,win=self.plot_v)
+        self.viz.line(X=self.t_history,Y=self.a_history,win=self.plot_a)
         return a
 
 class Net(nn.Module):
