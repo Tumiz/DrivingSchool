@@ -9,8 +9,9 @@ import visdom
 class AI:
 
     def __init__(self):
-        self.actor = Net(2,1,1000)
-        self.critic = Net(2,1,1000)
+        self.actor = Net(2,1)
+        self.critic = Net(2,1)
+        self.experience=torch.zeros(0,6)
         self.x_gap=0.
         self.v=0.
         self.a=0.
@@ -28,17 +29,25 @@ class AI:
 
     def decision(self, x_gap, v, R, t, greedy):  # return A
         Q=R+0.9*self.quality(x_gap,v)
-        for i,e in enumerate(self.critic.experience):
-            if pow(e[0]-self.x_gap,2)+pow(e[1]-self.v,2)<0.0001 and self.quality(e[0],e[1])<Q:
-                del self.critic.experience[i]
-        self.critic.experience.append([self.x_gap,self.v,Q])
-        self.critic.train()
+        record=torch.tensor([[self.x_gap,self.v,self.a,x_gap,v,Q]])
+        temp=torch.pow(self.experience[:,0:3]-record[:,0:3],2)
+        distances=torch.sum(temp,1)
+        indexes=torch.nonzero(distances<0.0001)
+        if len(indexes):
+            i=indexes[0].item()
+            e=self.experience[i]
+            if self.quality(e[3],e[4])<self.quality(x_gap,v):
+                self.experience[i]=record
+            elif self.experience.size()[0]>600:
+                self.experience[random.randint(0,600)]=record
+        else:
+            if self.experience.size()[0]<=600:
+                self.experience=torch.cat((self.experience,record),0)
+            else:
+                self.experience[random.randint(0,600)]=record
 
-        for i,e in enumerate(self.actor.experience):
-            if pow(e[0]-self.x_gap,2)+pow(e[1]-self.v,2)<0.0001 and e[3]<Q:
-                del self.actor.experience[i]
-        self.actor.experience.append([self.x_gap,self.v,self.a,Q])
-        self.actor.train()
+        self.critic.train(self.experience[:,0:2],self.experience[:,5])
+        self.actor.train(self.experience[:,0:2],self.experience[:,2])
 
         a=self.action(x_gap,v)+random.gauss(0,greedy)
         a=max(-1,a)
@@ -48,26 +57,31 @@ class AI:
         self.v=v
         self.a=a
 
-        self.v_history.append(v)
-        self.t_history.append(t)
-        if(len(self.v_history)>300):
-            del self.v_history[0]
-            del self.t_history[0]
-        self.viz.line(X=self.t_history,Y=self.v_history,win=self.plot_velocity)
+        # if(R==-1 or R==1):
+        #     self.v_history=[0]
+        #     self.t_history=[0]
+        # else:
+        #     self.v_history.append(v)
+        #     self.t_history.append(t)
+        # if(len(self.v_history)>300):
+        #     del self.v_history[0]
+        #     del self.t_history[0]
+        # self.viz.line(X=self.t_history,Y=self.v_history,win=self.plot_velocity)
         return a
 
 class Net(nn.Module):
 
-    def __init__(self,input_number,output_number,experience_pool_size):
+    def __init__(self,input_number,output_number):
         super(Net,self).__init__()
         self.layer1 = nn.Linear(input_number, input_number*10)
         self.layer2 = nn.Linear(input_number*10, output_number*10)
         self.layer3 = nn.Linear(output_number*10, output_number)
-        self.experience = []
         self.loss = torch.tensor([1.])
         self.input_number=input_number
         self.output_number=output_number
-        self.experience_pool_size=experience_pool_size
+        self.layer1.weight.data.fill_(0.)
+        self.layer2.weight.data.fill_(0.)
+        self.layer3.weight.data.fill_(0.)
 
     def forward(self, x):
         x = F.relu(self.layer1(x))
@@ -75,20 +89,12 @@ class Net(nn.Module):
         x = self.layer3(x)
         return x
 
-    def train(self):
-        l = len(self.experience)
-        if(l == 0):
-            return
-        if(l > self.experience_pool_size):
-            self.experience=random.sample(self.experience, self.experience_pool_size)
-        sample = torch.tensor(self.experience)
+    def train(self,input,target):
         loss_func = nn.MSELoss(reduction='mean')
         optimizer = optim.SGD(self.parameters(), lr=0.01)
-        input = sample[:, 0:self.input_number].float()
-        target = sample[:, self.input_number:self.input_number+self.output_number].float()
         counts = 0
         self.loss = loss_func(self(input), target)
-        while not torch.isnan(self.loss) and counts < 10:
+        while not torch.isnan(self.loss) and counts < 20:
             loss = loss_func(self(input), target)
             self.loss = loss
             optimizer.zero_grad()

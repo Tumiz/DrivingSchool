@@ -46,12 +46,9 @@ class SimHandler(WebSocketHandler):
                 response_data=dict()
                 response_data["id"]=id
                 response_data["a"]=self.agents[id].decision(x_gap,v,R,t,greedy)
-                print("time",t,"\r")
                 self.publish("timer",response_data)
             else:
                 self.agents[id]=AI()
-        elif(request_type=="reset"):
-            self.agents.clear()
 
     def on_close(self):
         self.users.remove(self) # 用户关闭连接后从容器中移除用户

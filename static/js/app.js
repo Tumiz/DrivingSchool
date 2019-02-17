@@ -91,14 +91,17 @@ new Vue({
                         if(obj.ai){
                             R=0
                             var x_gap=obj.position.x-flag.position.x
-                            if(Math.abs(x_gap)>50){
+                            if(Math.abs(x_gap)>30){
                                 this.pickedObj.failure_counts+=1
                                 R=-1
                                 obj.reset()
+                                this.time=0
                             }
-                            else if(Math.abs(x_gap)<1&&Math.abs(obj.v)<0.1){
+                            else if(Math.abs(x_gap)<5&&Math.abs(obj.v)<1){
                                 this.pickedObj.success_counts+=1
                                 R=1
+                                obj.reset()
+                                this.time=0
                             }
                             data={
                                 id:obj.id,
@@ -124,16 +127,6 @@ new Vue({
                     this.pickedObj.front_wheel_angle=pickedObj.front_wheel_angle
                 }
             }
-        },
-        reset() {
-            scene.add(cameras[0])
-            while (objects.children.length > 0){
-                var obj=objects.children[0]
-                if(obj.type=="Car")
-                    objects.remove(obj)
-            }
-            this.number = objects.children.length
-            this.send("reset", "")
         },
         stop() {
             clearInterval(this.timer)
