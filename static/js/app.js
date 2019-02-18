@@ -11,14 +11,16 @@ new Vue({
                 x: 0,
                 y: 0,
                 a: 0,
-                ai:  false,
+                ai:  true,
                 greedy:10,
                 success_counts: 0,
                 failure_counts: 0,
             },
-            need_response:false,
             time:0,
-            timer: 0,
+            timer: {
+                id:0,
+                time:0,
+            },
             number: 0,
             ws: []
         }
@@ -51,13 +53,9 @@ new Vue({
             var data = msg.data
             switch (type) {
                 case "timer":
-                    if(this.need_response){
-                        var obj=objects.getObjectById(data.id)
-                        if(obj&&obj.type=="Car"){
-                            obj.a=data.a
-                            obj.step(100)
-                        }
-                        this.need_response=false
+                    var obj=objects.getObjectById(data.id)
+                    if(obj&&obj.type=="Car"){
+                        obj.a=data.a                    
                     }
                     break
                 default:
@@ -79,45 +77,11 @@ new Vue({
         start() {
             if (this.ws.readyState == 3)
                 this.connect()
-            if (this.ws.readyState == 1 && this.timer == 0)
-                this.timer = setInterval(this.onTimer, 100)
-            this.need_response=false
-        },
-        onTimer() {
-            if(!this.need_response){
-                for (var i = 0, l = objects.children.length; i < l; i++) {
-                    var obj = objects.children[i]
-                    if (obj.type == "Car") {
-                        if(obj.ai){
-                            R=0
-                            var x_gap=obj.position.x-flag.position.x
-                            if(Math.abs(x_gap)>30){
-                                this.pickedObj.failure_counts+=1
-                                R=-1
-                                obj.reset()
-                                this.time=0
-                            }
-                            else if(Math.abs(x_gap)<5&&Math.abs(obj.v)<1){
-                                this.pickedObj.success_counts+=1
-                                R=1
-                                obj.reset()
-                                this.time=0
-                            }
-                            data={
-                                id:obj.id,
-                                x_gap:x_gap,
-                                v:obj.v,
-                                R:R,
-                                t:this.time,
-                                greedy:this.pickedObj.greedy/100
-                            }
-                            this.send("timer",data)
-                            this.need_response=true
-                            this.time+=1
-                        }     
-                    }
-                }
+            if (this.ws.readyState == 1 && this.timer.id==0){
+                this.timer.id = setInterval(this.ontimer,200)
             }
+        },
+        ontimer() {
             if(pickedObj){
                 this.pickedObj.x=pickedObj.position.x.toPrecision(4)
                 this.pickedObj.y=pickedObj.position.y.toPrecision(4)
@@ -127,10 +91,42 @@ new Vue({
                     this.pickedObj.front_wheel_angle=pickedObj.front_wheel_angle
                 }
             }
+            for (var i = 0, l = objects.children.length; i < l; i++) {
+                var obj = objects.children[i]
+                if (obj.type == "Car") {
+                    obj.step(200)
+                    if(obj.ai){
+                        R=0
+                        var x_gap=obj.position.x-flag.position.x
+                        if(Math.abs(x_gap)>30){
+                            this.pickedObj.failure_counts+=1
+                            R=-1
+                            obj.reset()
+                            this.time=0
+                        }
+                        else if(Math.abs(x_gap)<this.pickedObj.greedy/20&&Math.abs(obj.v)<this.pickedObj.greedy*0.01){
+                            this.pickedObj.success_counts+=1
+                            R=1
+                            obj.reset()
+                            this.time=0
+                        }
+                        data={
+                            id:obj.id,
+                            x_gap:x_gap,
+                            v:obj.v,
+                            R:R,
+                            t:this.time,
+                            greedy:this.pickedObj.greedy/100
+                        }
+                        this.send("timer",data)
+                        this.time+=1
+                    }     
+                }
+            }
         },
         stop() {
-            clearInterval(this.timer)
-            this.timer = 0
+            clearInterval(this.timer.id)
+            this.timer.id=0
         },
         open(url) {
             window.open(url)

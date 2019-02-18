@@ -50,6 +50,7 @@ function init() {
     grid=new Grid(1000,200)
     plane=new Plane(1000)
     flag=new Flag()
+    flag.position.set(6,0,0)
     objects.add(flag)
     scene.add(objects,new Axis(2,2),grid)
 
@@ -223,7 +224,7 @@ function Car(){
     obj.a=0
     obj.front_wheel_angle=0
     obj.wheel_base=2.7
-    obj.ai=false
+    obj.ai=true
     obj.step=function(dt){
         dt=dt/1000
         obj.vx=obj.v*Math.cos(obj.rotation.z)
