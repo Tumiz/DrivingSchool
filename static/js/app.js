@@ -55,8 +55,17 @@ new Vue({
                 case "timer":
                     var obj=objects.getObjectById(data.id)
                     if(obj&&obj.type=="Car"){
-                        obj.a=data.a                    
+                        obj.a=data.a     
+                        obj.step(100) 
+                        this.pickedObj.x=pickedObj.position.x.toPrecision(4)
+                        this.pickedObj.y=pickedObj.position.y.toPrecision(4)
+                        this.pickedObj.v = pickedObj.v
+                        this.pickedObj.a = pickedObj.a
+                        this.pickedObj.front_wheel_angle=pickedObj.front_wheel_angle  
+                        this.time+=1    
+                        this.start()        
                     }
+                    
                     break
                 default:
                     break
@@ -77,51 +86,29 @@ new Vue({
         start() {
             if (this.ws.readyState == 3)
                 this.connect()
-            if (this.ws.readyState == 1 && this.timer.id==0){
-                this.timer.id = setInterval(this.ontimer,200)
-            }
-        },
-        ontimer() {
-            if(pickedObj){
-                this.pickedObj.x=pickedObj.position.x.toPrecision(4)
-                this.pickedObj.y=pickedObj.position.y.toPrecision(4)
-                if (pickedObj.type == "Car"){
-                    this.pickedObj.v = pickedObj.v
-                    this.pickedObj.a = pickedObj.a
-                    this.pickedObj.front_wheel_angle=pickedObj.front_wheel_angle
+            if (this.ws.readyState == 1 && pickedObj && pickedObj.type=="Car"){
+                R=0
+                var x_gap=pickedObj.position.x-flag.position.x
+                if(Math.abs(x_gap)>30){
+                    this.pickedObj.failure_counts+=1
+                    R=-1
+                    pickedObj.reset()
+                    this.time=0
                 }
-            }
-            for (var i = 0, l = objects.children.length; i < l; i++) {
-                var obj = objects.children[i]
-                if (obj.type == "Car") {
-                    obj.step(200)
-                    if(obj.ai){
-                        R=0
-                        var x_gap=obj.position.x-flag.position.x
-                        if(Math.abs(x_gap)>30){
-                            this.pickedObj.failure_counts+=1
-                            R=-1
-                            obj.reset()
-                            this.time=0
-                        }
-                        else if(Math.abs(x_gap)<this.pickedObj.greedy/20&&Math.abs(obj.v)<this.pickedObj.greedy*0.01){
-                            this.pickedObj.success_counts+=1
-                            R=1
-                            obj.reset()
-                            this.time=0
-                        }
-                        data={
-                            id:obj.id,
-                            x_gap:x_gap,
-                            v:obj.v,
-                            R:R,
-                            t:this.time,
-                            greedy:this.pickedObj.greedy/100
-                        }
-                        this.send("timer",data)
-                        this.time+=1
-                    }     
+                else if(Math.abs(x_gap)<this.pickedObj.greedy/20&&Math.abs(pickedObj.v)<this.pickedObj.greedy*0.01){
+                    this.pickedObj.success_counts+=1
+                    R=1
+                    pickedObj.reset()
+                    this.time=0
                 }
+                this.send("timer",{
+                    id:pickedObj.id,
+                    x_gap:x_gap,
+                    v:pickedObj.v,
+                    R:R,
+                    t:this.time,
+                    greedy:this.pickedObj.greedy/100,
+                })
             }
         },
         stop() {
