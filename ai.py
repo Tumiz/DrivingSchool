@@ -32,16 +32,14 @@ class AI:
     def decision(self, x_gap, v, R, t, greedy):  # return A
         Q=R+0.9*self.quality(x_gap,v)
         record=torch.tensor([[self.x_gap,self.v,self.a,x_gap,v,Q]])
-        temp=torch.pow(self.experience[:,0:3]-record[:,0:3],2)
+        temp=torch.pow(self.experience[:,0:2]-record[:,0:2],2)
         distances=torch.sum(temp,1)
-        indexes=torch.nonzero(distances<0.0001)
+        indexes=torch.nonzero(distances<1)
         if len(indexes):
             i=indexes[0].item()
             e=self.experience[i]
             if self.quality(e[3],e[4])<self.quality(x_gap,v):
                 self.experience[i]=record
-            elif self.experience.size()[0]>600:
-                self.experience[random.randint(0,600)]=record
         else:
             if self.experience.size()[0]<=600:
                 self.experience=torch.cat((self.experience,record),0)
