@@ -36,6 +36,7 @@ class SimHandler(WebSocketHandler):
         request_type=msg["type"]
         request_data=msg["data"]
         if(request_type=="timer"): 
+            done=bool(request_data["done"])
             id=int(request_data["id"])
             v=float(request_data["v"])
             t=float(request_data["t"])
@@ -45,7 +46,7 @@ class SimHandler(WebSocketHandler):
                 self.agents[id]=AI()
             response_data=dict()
             response_data["id"]=id
-            response_data["a"]=self.agents[id].decision(x_gap,v,R,t)
+            response_data["a"]=self.agents[id].decision(done,x_gap,v,R,t)
             self.publish("timer",response_data)
                 
     def on_close(self):

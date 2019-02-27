@@ -22,7 +22,7 @@ class AI:
         self.t_history=[]
         self.a_history=[]
 
-    def decision(self, x_gap, v, R, t):  # return A
+    def decision(self, done, x_gap, v, R, t):  # return A
         self.rewards.append(R)
         probs = self.policy(torch.tensor([[x_gap,v]]))
         dist = Categorical(probs)
@@ -30,20 +30,16 @@ class AI:
         self.saved_log_probs.append(dist.log_prob(a_index))
         a=self.action_space[a_index.item()]
 
-        if(R==1 or R==-1):
+        if(done):
             self.finish_episode()
-
-        self.v_history.append(v)
-        self.a_history.append(a)
-        self.t_history.append(t)
-        if(R==1 or R==-1):
             self.v_history=[0]
             self.a_history=[0]
             self.t_history=[0]
-        if(len(self.v_history)>300):
-            del self.v_history[0]
-            del self.t_history[0]
-            del self.a_history[0]
+        else:
+            self.v_history.append(v)
+            self.a_history.append(a)
+            self.t_history.append(t)
+
         self.viz.line(X=self.t_history,Y=self.v_history,win=self.plot_v)
         self.viz.line(X=self.t_history,Y=self.a_history,win=self.plot_a)
         return a

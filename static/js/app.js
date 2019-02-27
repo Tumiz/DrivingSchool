@@ -60,8 +60,13 @@ new Vue({
                         this.a = obj.a
                         this.front_wheel_angle=obj.front_wheel_angle  
                         this.time+=1    
-                        this.judge(obj)
+                        var done=this.judge(obj)
+                        if(done){
+                            obj.reset()
+                            this.time=0
+                        }
                         this.send("timer",{
+                            done:done,
                             id:obj.id,
                             x_gap:obj.position.x-flag.position.x,
                             v:obj.v,
@@ -76,24 +81,24 @@ new Vue({
             }
         },
         judge(obj){
-            R=0
             var x_gap=obj.position.x-flag.position.x
             if(x_gap<-100 ||x_gap>30){
                 this.failure_counts+=1
                 R=-1
-                obj.reset()
-                this.time=0
+                return true
             }
-            else if(this.time>200){
+            else if(this.time>300){
                 this.failure_counts+=1
-                obj.reset()
-                this.time=0
+                R=0
+                return true
             }
-            else if(Math.abs(x_gap)<this.roughness/10&&Math.abs(obj.v)<this.roughness*0.1){
+            else if(Math.abs(x_gap)<this.roughness/10&&Math.abs(obj.v)<this.roughness*0.01){
                 this.success_counts+=1
-                R=100
-                obj.reset()
-                this.time=0
+                R=1
+                return true
+            }else{
+                R=0
+                return false
             }
         },
         connect(func) {
@@ -116,6 +121,7 @@ new Vue({
                 var obj = objects.children[i]
                 if ( obj.type=="Car"){
                     this.send("timer",{
+                        done:false,
                         id:obj.id,
                         x_gap:obj.position.x-flag.position.x,
                         v:obj.v,
