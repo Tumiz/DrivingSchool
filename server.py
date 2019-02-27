@@ -39,17 +39,15 @@ class SimHandler(WebSocketHandler):
             id=int(request_data["id"])
             v=float(request_data["v"])
             t=float(request_data["t"])
-            greedy=float(request_data["greedy"])
             x_gap=float(request_data["x_gap"])
             R=float(request_data["R"])
-            if(self.agents.__contains__(id)):
-                response_data=dict()
-                response_data["id"]=id
-                response_data["a"]=self.agents[id].decision(x_gap,v,R,t,greedy)
-                self.publish("timer",response_data)
-            else:
+            if(not self.agents.__contains__(id)):
                 self.agents[id]=AI()
-
+            response_data=dict()
+            response_data["id"]=id
+            response_data["a"]=self.agents[id].decision(x_gap,v,R,t)
+            self.publish("timer",response_data)
+                
     def on_close(self):
         self.users.remove(self) # 用户关闭连接后从容器中移除用户
 
