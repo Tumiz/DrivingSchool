@@ -13,8 +13,10 @@
         <el-button type="success" @click="start">► Start</el-button>
         <el-button type="info" @click="stop()">✖ Stop</el-button>
         <el-button type="info" @click="open('https://github.com/Tumiz/DrivingSchool')">? Help</el-button>
-        <span class="demonstration">Roughness: </span>
-        <el-slider v-model="roughness" :format-tooltip="formatTooltip"></el-slider>
+        <span class="demonstration">x error: </span>
+        <el-slider v-model="x_error" :format-tooltip="formatXError"></el-slider>
+        <span class="demonstration">v error: </span>
+        <el-slider v-model="v_error" :format-tooltip="formatVError"></el-slider>
         <span class="demonstration">Object ${id} / ${number} objects x:${x}, y:${y} ✔:${success_counts} ✘:${failure_counts} Time: ${time}</span>
         <el-form :inline="true" class="demo-form-inline">
             <el-form-item label="Front Wheel Angle">

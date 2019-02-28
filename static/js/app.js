@@ -11,7 +11,8 @@ new Vue({
             y: 0,
             a: 0,
             ai:  true,
-            roughness:100,
+            v_error:100,
+            x_error:100,
             success_counts: 0,
             failure_counts: 0,
             running:false,
@@ -32,7 +33,10 @@ new Vue({
         this.connect()
     },
     methods: {
-        formatTooltip(val) {
+        formatXError(val) {
+            return val / 10
+        },
+        formatVError(val) {
             return val / 100
         },
         send(type, data) {
@@ -72,7 +76,6 @@ new Vue({
                             v:obj.v,
                             R:R,
                             t:this.time,
-                            roughness:this.roughness/100,
                         })        
                     }
                     break
@@ -82,19 +85,14 @@ new Vue({
         },
         judge(obj){
             var x_gap=obj.position.x-flag.position.x
-            if(x_gap<-100 ||x_gap>30){
+            if(this.time>300){
                 this.failure_counts+=1
-                R=-1
+                R=-10
                 return true
             }
-            else if(this.time>300){
-                this.failure_counts+=1
-                R=0
-                return true
-            }
-            else if(Math.abs(x_gap)<this.roughness/10&&Math.abs(obj.v)<this.roughness*0.01){
+            else if(Math.abs(x_gap)<this.x_error/10&&Math.abs(obj.v)<this.v_error/100){
                 this.success_counts+=1
-                R=1
+                R=10
                 return true
             }else{
                 R=0
@@ -127,7 +125,6 @@ new Vue({
                         v:obj.v,
                         R:0,
                         t:this.time,
-                        roughness:this.roughness/100,
                     }) 
                 }
             }
