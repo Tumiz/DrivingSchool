@@ -10,6 +10,8 @@ body {
 #app{
     position: absolute;
     z-index: 1;
+    color: #a39393;
+    font-family: Arial;
 }
 #canvas{
     width: 100%;
@@ -25,11 +27,6 @@ body {
     left: 0%;
     right:0px;
     width: 300px;
-}
-.demonstration{
-    font-family: Arial;
-    color:#989ba0;
-    margin-left: 10px
 }
 .el-form-item__content {
     width: 80px;
@@ -126,6 +123,10 @@ body {
     background-color: #2b2a2a;
     border: 0px solid #3b3c3e;
     color: #cbccd0;
+}
+.el-input{
+    display: inline-block;
+    width: 70px;
 }
 .el-slider{
     display: inline-block;

@@ -37,7 +37,7 @@ class SimHandler(WebSocketHandler):
         request_data=msg["data"]
         if(request_type=="timer"): 
             done=bool(request_data["done"])
-            id=int(request_data["id"])
+            id=int(request_data["id"])# id of agent
             v=float(request_data["v"])
             t=float(request_data["t"])
             x_gap=float(request_data["x_gap"])
@@ -48,6 +48,9 @@ class SimHandler(WebSocketHandler):
             response_data["id"]=id
             response_data["a"]=self.agents[id].decision(done,x_gap,v,R,t)
             self.publish("timer",response_data)
+        elif(request_type=="reset"):
+            self.agents.clear()
+            print("agents number:",len(self.agents))
                 
     def on_close(self):
         self.users.remove(self) # 用户关闭连接后从容器中移除用户

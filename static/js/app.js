@@ -11,8 +11,8 @@ new Vue({
             y: 0,
             a: 0,
             ai:  true,
-            v_error:100,
-            x_error:100,
+            v_error:3,
+            x_error:5,
             success_counts: 0,
             failure_counts: 0,
             running:false,
@@ -33,12 +33,6 @@ new Vue({
         this.connect()
     },
     methods: {
-        formatXError(val) {
-            return val / 10
-        },
-        formatVError(val) {
-            return val / 100
-        },
         send(type, data) {
             var request = {
                 type: type,
@@ -89,8 +83,7 @@ new Vue({
                 this.failure_counts+=1
                 R=-10
                 return true
-            }
-            else if(Math.abs(x_gap)<this.x_error/10&&Math.abs(obj.v)<this.v_error/100){
+            }else if(Math.abs(x_gap)<this.x_error&&Math.abs(obj.v)<this.v_error){
                 this.success_counts+=1
                 R=10
                 return true
@@ -131,6 +124,16 @@ new Vue({
         },
         stop() {
             this.running=false
+        },
+        reset(){
+            this.running=false
+            for(var i=0,l=objects.children.length;i<l;i++){
+                var obj = objects.children[i]
+                if ( obj.type=="Car"){
+                    objects.remove(obj)
+                }
+            }
+            this.send("reset",{}) 
         },
         open(url) {
             window.open(url)
@@ -248,7 +251,6 @@ new Vue({
                     pickedObj.rotation.z -= 0.01
                     break
                 case 46://delete
-                case 8://back space
                     if(pickedObj){
                         scene.add(cameras[0])
                         objects.remove(pickedObj)

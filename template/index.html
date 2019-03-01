@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <title>DrivingSchool</title>
+
 <head>
     <meta charset="UTF-8">
     <!-- import CSS -->
@@ -12,26 +13,15 @@
     <div id="app">
         <el-button type="success" @click="start">► Start</el-button>
         <el-button type="info" @click="stop()">✖ Stop</el-button>
-        <el-button type="info" @click="open('https://github.com/Tumiz/DrivingSchool')">? Help</el-button>
-        <span class="demonstration">x error: </span>
-        <el-slider v-model="x_error" :format-tooltip="formatXError"></el-slider>
-        <span class="demonstration">v error: </span>
-        <el-slider v-model="v_error" :format-tooltip="formatVError"></el-slider>
-        <span class="demonstration">Object ${id} / ${number} objects x:${x}, y:${y} ✔:${success_counts} ✘:${failure_counts} Time: ${time}</span>
-        <el-form :inline="true" class="demo-form-inline">
-            <el-form-item label="Front Wheel Angle">
-                <el-input v-model="front_wheel_angle"></el-input>
-            </el-form-item>
-            <el-form-item label="Velocity">
-                <el-input v-model="v"></el-input>
-            </el-form-item>
-            <el-form-item label="Acceleration">
-                <el-input v-model="a"></el-input>
-            </el-form-item>
-            <el-form-item>
-                <el-checkbox v-model="ai" label="AI" @change="changeAIstate"></el-checkbox>
-            </el-form-item>
-        </el-form>
+        <el-button type="info" @click="reset()">↺ Reset</el-button>
+        x error: <el-input v-model="x_error"></el-input>
+        v error: <el-input v-model="v_error"></el-input>
+        front wheel angle: <el-input v-model="front_wheel_angle"></el-input>
+        v: <el-input v-model="v"></el-input>
+        a: <el-input v-model="a"></el-input>
+        <el-checkbox v-model="ai" label="AI" @change="changeAIstate"></el-checkbox>
+        Object ${id} / ${number} objects x:${x}, y:${y} ✔:${success_counts}
+            ✘:${failure_counts} Time: ${time}
     </div>
     <div id="canvas"></div>
 </body>
