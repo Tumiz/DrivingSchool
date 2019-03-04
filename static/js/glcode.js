@@ -49,9 +49,6 @@ function init() {
     objects=new THREE.Object3D()
     grid=new Grid(1000,200)
     plane=new Plane(1000)
-    flag=new Flag()
-    flag.position.set(15,0,0)
-    objects.add(flag)
     scene.add(objects,new Axis(2,2),grid)
 
     activeViewPort=1
@@ -178,13 +175,19 @@ function LoadCar(position){
     );
 }
 
-function Flag(){
-    var material=new THREE.MeshStandardMaterial({color:"#E9967A"})
+function Flag(radius){
+    var obj=new THREE.Object3D()
+    var m_cylinder=new THREE.MeshStandardMaterial({color:"#E9967A"})
     var g_cylinder=new THREE.CylinderGeometry(0.05,0.5,2,32)
-    var obj=new THREE.Mesh(g_cylinder,material)
-    obj.rotation.x=Math.PI/2
-    obj.position.z=1
-    return new THREE.Object3D().add(obj)
+    obj.cylinder=new THREE.Mesh(g_cylinder,m_cylinder)
+    obj.cylinder.rotation.x=Math.PI/2
+    obj.cylinder.position.z=1
+    var geometry = new THREE.CircleGeometry( radius, 32 );
+    var material = new THREE.MeshBasicMaterial( { color: 0xffff00 , opacity:0.2, transparent:true} );
+    obj.circle = new THREE.Mesh( geometry, material );
+    obj.add(obj.cylinder,obj.circle)
+    objects.add(obj)
+    return obj
 }
 
 function Sphere(){
@@ -241,6 +244,8 @@ function Car(){
         obj.a=0
         obj.front_wheel_angle=0
         obj.position.x=0
+        obj.position.y=0
+        obj.rotation.z=0
     }
     obj.add(cameras[0])
     objects.add(obj)

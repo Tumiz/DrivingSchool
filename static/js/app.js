@@ -12,7 +12,7 @@ new Vue({
             a: 0,
             ai:  true,
             v_error:3,
-            x_error:5,
+            p_error:3,//position error
             success_counts: 0,
             failure_counts: 0,
             running:false,
@@ -30,6 +30,8 @@ new Vue({
         canvas.ondblclick = this.mouseDoubleClickHandler
         document.onkeydown = this.keyDownHandler
         document.onkeyup = this.keyUpHandler
+        flag=new Flag(this.p_error)
+        flag.position.set(10,0,0)
         this.connect()
     },
     methods: {
@@ -51,9 +53,10 @@ new Vue({
                     var obj=objects.getObjectById(data.id)
                     if(obj&&obj.type=="Car"){
                         obj.a=data.a     
+                        obj.front_wheel_angle=data.front_wheel_angle
                         obj.step(100) 
-                        this.x=obj.position.x.toPrecision(4)
-                        this.y=obj.position.y.toPrecision(4)
+                        this.x=obj.position.x.toFixed(2)
+                        this.y=obj.position.y.toFixed(2)
                         this.v = obj.v
                         this.a = obj.a
                         this.front_wheel_angle=obj.front_wheel_angle  
@@ -63,10 +66,13 @@ new Vue({
                             obj.reset()
                             this.time=0
                         }
+                        var local=obj.worldToLocal(flag.position.clone())
                         this.send("timer",{
                             done:done,
                             id:obj.id,
-                            x_gap:obj.position.x-flag.position.x,
+                            x:local.x,
+                            y:local.y,
+                            rz:obj.rotation.z,
                             v:obj.v,
                             R:R,
                             t:this.time,
@@ -78,14 +84,16 @@ new Vue({
             }
         },
         judge(obj){
-            var x_gap=obj.position.x-flag.position.x
-            if(this.time>300){
-                this.failure_counts+=1
-                R=-10
-                return true
-            }else if(Math.abs(x_gap)<this.x_error&&Math.abs(obj.v)<this.v_error){
+            var p_gap=obj.position.distanceTo(flag.position)
+            var v_gap=Math.abs(obj.v)
+            var init_p_gap=flag.position.length()
+            if(p_gap<this.p_error&&v_gap<this.v_error){
                 this.success_counts+=1
-                R=10
+                R=(p_gap/init_p_gap)+(v_gap/10)
+                return true
+            }else if(this.time>300||p_gap>init_p_gap*2||v_gap>10){
+                this.failure_counts+=1
+                R=(p_gap/init_p_gap)+(v_gap/10)
                 return true
             }else{
                 R=0
@@ -114,7 +122,9 @@ new Vue({
                     this.send("timer",{
                         done:false,
                         id:obj.id,
-                        x_gap:obj.position.x-flag.position.x,
+                        x:obj.position.x-flag.position.x,
+                        y:obj.position.y-flag.position.y,
+                        rz:obj.rotation.z,
                         v:obj.v,
                         R:0,
                         t:this.time,
@@ -133,10 +143,17 @@ new Vue({
                     objects.remove(obj)
                 }
             }
+            this.number = objects.children.length
+            this.time=0
+            this.failure_counts=0
+            this.success_counts=0
             this.send("reset",{}) 
         },
         open(url) {
             window.open(url)
+        },
+        changeperror(value){
+            flag.circle.geometry=new THREE.CircleGeometry(value, 32 )
         },
         changeAIstate(enable){
             if(pickedObj && pickedObj.type == "Car")
