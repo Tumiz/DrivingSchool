@@ -1,7 +1,7 @@
 from torch.optim import Adam
 from torch import tensor, arange
 from torch.nn import Module, Linear
-from torch.nn.functional import relu, softmax
+from torch.nn.functional import relu, softmax, leaky_relu
 from torch.distributions import Categorical
 
 import visdom
@@ -29,7 +29,7 @@ class Agent(Module):
         self.a_history = []
 
     def forward(self, x):
-        x = relu(self.s_head(x))
+        x = leaky_relu(self.s_head(x))
         a_scores = self.a_head(x)
         w_scores = self.w_head(x)
         return softmax(a_scores, dim=0), softmax(w_scores, dim=0)
@@ -46,8 +46,8 @@ class Agent(Module):
         a_index = a_dist.sample()
         w_index = w_dist.sample()
         self.records.append((R, a_probs[a_index], w_probs[w_index]))
-        a=self.a_space[a_index].item()
-        w=self.w_space[w_index].item()
+        a = self.a_space[a_index].item()
+        w = self.w_space[w_index].item()
 
         if(done):
             self.finish_episode()
@@ -69,11 +69,13 @@ class Agent(Module):
         return a, w
 
     def finish_episode(self):
-        R = 0
-        score = tensor(0)
-        for r, a_prob, w_prob in self.records[::-1]:
-            R = r+0.9*R
-            score = score+R*a_prob*w_prob
-        print(score)
-        self.optimize(score)
+        R = self.records[-1][0]
+        self.records.pop()
+        if len(self.records)>0:
+            loss = R
+            for r, a_prob, w_prob in self.records[::-1]:
+                R = r+0.9*R
+                loss = loss+R*a_prob*w_prob
+            print(loss)
+            self.optimize(loss)
         del self.records[:]

@@ -64,6 +64,8 @@ new Vue({
                         var done=this.judge(obj)
                         if(done){
                             obj.reset()
+                            flag.position.x=Math.random()*40
+                            flag.position.y=Math.random()*60-30
                             this.time=0
                         }
                         var local=obj.worldToLocal(flag.position.clone())
@@ -89,12 +91,15 @@ new Vue({
             var init_p_gap=flag.position.length()
             if(p_gap<this.p_error&&v_gap<this.v_error){
                 this.success_counts+=1
-                R=(p_gap/init_p_gap)+(v_gap/10)
+                R=-1
                 return true
-            }else if(this.time>300||p_gap>init_p_gap*2||v_gap>10){
+            }else if(this.time>200){
                 this.failure_counts+=1
-                R=(p_gap/init_p_gap)+(v_gap/10)
+                R=p_gap/init_p_gap+v_gap/10
                 return true
+            }else if(p_gap>init_p_gap+this.p_error||obj.v>10||obj.v<0){
+                R=0.1
+                return false
             }else{
                 R=0
                 return false
