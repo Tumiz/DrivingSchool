@@ -18,15 +18,18 @@ class Agent(Module):
         self.w_head = Linear(4*32, len(self.w_space))
         self.optimizer = Adam(self.parameters(), lr=0.01)
         self.records = []
+        self.episode = 0
 
         self.viz = visdom.Visdom()
         self.plot_v = self.viz.line(X=[0], Y=[0])
         self.plot_a = self.viz.line(X=[0], Y=[0])
         self.plot_w = self.viz.line(X=[0], Y=[0])
+        self.plot_l = self.viz.line(X=[0], Y=[0])
         self.v_history = []
         self.t_history = []
         self.w_history = []
         self.a_history = []
+        self.l_history = []
 
     def forward(self, x):
         x = leaky_relu(self.s_head(x))
@@ -71,11 +74,16 @@ class Agent(Module):
     def finish_episode(self):
         R = self.records[-1][0]
         self.records.pop()
-        if len(self.records)>0:
-            loss = R
+        loss = R
+        if len(self.records) > 0:
             for r, a_prob, w_prob in self.records[::-1]:
                 R = r+0.9*R
                 loss = loss+R*a_prob*w_prob
-            print(loss)
             self.optimize(loss)
+            loss=loss.item()
         del self.records[:]
+
+        self.episode+=1
+        self.l_history.append(loss)
+        self.viz.line(X=list(range(self.episode)),Y=self.l_history,
+                      win=self.plot_l, opts=dict(ylabel="loss"))

@@ -165,6 +165,7 @@ function LoadCar(position){
         "static/res/car.json",
         function ( obj ) {
             car_model=obj
+            pickedObj = new Car()
         },
         function ( xhr ) {
             console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
