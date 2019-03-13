@@ -12,9 +12,8 @@ new Vue({
             a: 0,
             ai:  true,
             v_error:3,
-            p_error:3,//position error
-            success_counts: 0,
-            failure_counts: 0,
+            p_error:6,//position error
+            counts: 0,
             running:false,
             time:0,
             number: 0,
@@ -31,7 +30,7 @@ new Vue({
         document.onkeydown = this.keyDownHandler
         document.onkeyup = this.keyUpHandler
         flag=new Flag(this.p_error)
-        flag.position.set(10,0,0)
+        flag.position.set(20,0,0)
         this.connect()
     },
     methods: {
@@ -64,9 +63,12 @@ new Vue({
                         var done=this.judge(obj)
                         if(done){
                             obj.reset()
-                            flag.position.x=Math.random()*40+10
-                            flag.position.y=Math.random()*60-30
+                            var r=20
+                            var theta=Math.random()*1.2-0.6
+                            flag.position.x=r*Math.cos(theta)
+                            flag.position.y=r*Math.sin(theta)
                             this.time=0
+                            this.counts+=1
                         }
                         var local=obj.worldToLocal(flag.position.clone())
                         this.send("timer",{
@@ -89,19 +91,15 @@ new Vue({
             var p_gap=obj.position.distanceTo(flag.position)
             var v_gap=Math.abs(obj.v)
             var init_p_gap=flag.position.length()
-            if(p_gap<this.p_error&&v_gap<this.v_error){
-                this.success_counts+=1
-                R=-1/this.time
-                return true
+            if(p_gap<this.p_error&&v_gap<this.v_error&&this.time<=200){
+                R=-0.01
+                return false
             }else if(this.time>200){
-                this.failure_counts+=1
-                // R=(p_gap/init_p_gap+v_gap/10)/this.time
-                R=1/this.time
+                R=0
                 return true
-            }else if(p_gap>init_p_gap+this.p_error||obj.v>10||obj.v<0){
-                this.failure_counts+=1
-                R=1/this.time
-                return true
+            }else if(p_gap>init_p_gap+5||obj.v>10||obj.v<0){
+                R=0.01
+                return false
             }else{
                 R=0
                 return false
@@ -112,7 +110,7 @@ new Vue({
             ws.onmessage = this.onMessage
             ws.onopen = function () {
                 var request = {
-                    type: "status",
+                    type: "reset",
                     data: "client ready"
                 }
                 ws.send(JSON.stringify(request))
@@ -147,13 +145,12 @@ new Vue({
             for(var i=0,l=objects.children.length;i<l;i++){
                 var obj = objects.children[i]
                 if ( obj.type=="Car"){
-                    objects.remove(obj)
+                    obj.reset()
                 }
             }
             this.number = objects.children.length
             this.time=0
-            this.failure_counts=0
-            this.success_counts=0
+            this.counts=0
             this.send("reset",{}) 
         },
         open(url) {
