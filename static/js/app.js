@@ -61,15 +61,6 @@ new Vue({
                         this.front_wheel_angle=obj.front_wheel_angle  
                         this.time+=1    
                         var done=this.judge(obj)
-                        if(done){
-                            obj.reset()
-                            var r=20
-                            var theta=Math.random()*1.2-0.6
-                            flag.position.x=r*Math.cos(theta)
-                            flag.position.y=r*Math.sin(theta)
-                            this.time=0
-                            this.counts+=1
-                        }
                         var local=obj.worldToLocal(flag.position.clone())
                         this.send("timer",{
                             done:done,
@@ -80,7 +71,16 @@ new Vue({
                             v:obj.v,
                             R:R,
                             t:this.time,
-                        })        
+                        }) 
+                        if(done){
+                            obj.reset()
+                            var r=20
+                            var theta=Math.random()*1.2-0.6
+                            flag.position.x=r*Math.cos(theta)
+                            flag.position.y=r*Math.sin(theta)
+                            this.time=0
+                            this.counts+=1
+                        }       
                     }
                     break
                 default:
@@ -91,14 +91,14 @@ new Vue({
             var p_gap=obj.position.distanceTo(flag.position)
             var v_gap=Math.abs(obj.v)
             var init_p_gap=flag.position.length()
-            if(p_gap<this.p_error&&v_gap<this.v_error&&this.time<=200){
-                R=-0.01
+            if(p_gap<this.p_error&&v_gap<this.v_error&&this.time<=100){
+                R=-1
                 return false
-            }else if(this.time>200){
-                R=0
+            }else if(this.time>100){
+                R=-1+(p_gap/init_p_gap)*0.9+v_gap/10*0.1
                 return true
             }else if(p_gap>init_p_gap+5||obj.v>10||obj.v<0){
-                R=0.01
+                R=1
                 return false
             }else{
                 R=0

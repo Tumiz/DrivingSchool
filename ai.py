@@ -70,7 +70,8 @@ class Agent(Module):
             self.r_history = [0]
         else:
             # actions' probabilities of next episode
-            self.records_p.append((a_dist.log_prob(a_index), w_dist.log_prob(w_index)))
+            self.records_p.append(
+                (a_dist.log_prob(a_index), w_dist.log_prob(w_index)))
             self.v_history.append(v)
             self.a_history.append(a)
             self.t_history.append(t)
@@ -88,22 +89,23 @@ class Agent(Module):
         return a, w
 
     def finish_episode(self):
-        e = 0
-        errors = []
-        for r in self.records_r[::-1]:
-            e = r+0.99*e
-            errors.insert(0, e)
-        terrors = tensor(errors)
-        terrors = (terrors-terrors.mean())/(terrors.std()+1e-10)
-        loss = 0
-        for e, p in zip(terrors, self.records_p):
-            loss += e*p[0]*p[1]
-        self.optimize(loss)
-        loss = loss.item()
+        loss = tensor(0.)
+        if len(self.records_r) > 1:
+            e = 0
+            errors = []
+            for r in self.records_r[::-1]:
+                e = r+0.99*e
+                errors.insert(0, e)
+            terrors = tensor(errors)
+            terrors = (terrors-terrors.mean())/(terrors.std()+1e-10)
+            loss = 0.
+            for e, p in zip(terrors, self.records_p):
+                loss += e*p[0]*p[1]
+            self.optimize(loss)
         del self.records_r[:]
         del self.records_p[:]
 
         self.episode += 1
-        self.l_history.append(loss)
+        self.l_history.append(loss.item())
         self.viz.line(X=list(range(self.episode)), Y=self.l_history,
                       win=self.plot_l, opts=dict(ylabel="loss"))
