@@ -1,7 +1,7 @@
 from torch.optim import Adam
 from torch import tensor, arange
 from torch.nn import Module, Linear
-from torch.nn.functional import relu, softmax, leaky_relu
+from torch.nn.functional import softmax, elu
 from torch.distributions import Categorical
 
 import visdom
@@ -14,8 +14,6 @@ class Agent(Module):
         self.a_space = arange(-1, 1.1, 0.2)
         self.w_space = arange(-0.5, 0.6, 0.1)
         self.s_head = Linear(4, 4*16)
-        self.hidden1 = Linear(4*16, 4*16)
-        self.hidden2 = Linear(4*16, 4*16)
         self.a_head = Linear(4*16, len(self.a_space))
         self.w_head = Linear(4*16, len(self.w_space))
         self.optimizer = Adam(self.parameters(), lr=0.01)
@@ -38,9 +36,7 @@ class Agent(Module):
         self.l_history = []
 
     def forward(self, x):
-        x = leaky_relu(self.s_head(x))
-        x = leaky_relu(self.hidden1(x))
-        x = leaky_relu(self.hidden2(x))
+        x = elu(self.s_head(x))
         a_scores = self.a_head(x)
         w_scores = self.w_head(x)
         return softmax(a_scores, dim=0), softmax(w_scores, dim=0)
@@ -90,17 +86,16 @@ class Agent(Module):
 
     def finish_episode(self):
         loss = tensor(0.)
-        if len(self.records_r) > 1:
-            e = 0
-            errors = []
-            for r in self.records_r[::-1]:
-                e = r+0.99*e
-                errors.insert(0, e)
-            terrors = tensor(errors)
-            terrors = (terrors-terrors.mean())/(terrors.std()+1e-10)
-            loss = 0.
-            for e, p in zip(terrors, self.records_p):
-                loss += e*p[0]*p[1]
+        e = 0
+        errors = []
+        for r in self.records_r[::-1]:
+            e = r+0.7*e
+            errors.insert(0, e)
+        terrors = tensor(errors)
+        terrors = (terrors-terrors.mean())/(terrors.std()+1e-10)
+        for e, p in zip(terrors, self.records_p):
+            loss += e*p[0]*p[1]
+        if loss!=tensor(0.):
             self.optimize(loss)
         del self.records_r[:]
         del self.records_p[:]
