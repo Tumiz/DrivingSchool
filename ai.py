@@ -3,6 +3,7 @@ from torch import tensor, arange
 from torch.nn import Module, Linear
 from torch.nn.functional import softmax, elu
 from torch.distributions import Categorical
+from algris import standardize
 
 import visdom
 
@@ -17,19 +18,17 @@ class Agent(Module):
         self.a_head = Linear(4*16, len(self.a_space))
         self.w_head = Linear(4*16, len(self.w_space))
         self.optimizer = Adam(self.parameters(), lr=0.01)
-        self.records_r = []  # records of returns
-        self.records_p = []  # records of action probabilities
-        self.episode = 0
+        self.records = []  # records of returns
 
         self.viz = visdom.Visdom()
         self.viz.close(win=None)
         self.plot_v = self.viz.line(X=[0], Y=[0])
         self.plot_a = self.viz.line(X=[0], Y=[0])
         self.plot_w = self.viz.line(X=[0], Y=[0])
-        self.plot_l = self.viz.line(X=[0], Y=[0])
         self.plot_r = self.viz.line(X=[0], Y=[0])
+        self.plot_l = self.viz.line(X=[0], Y=[0])
+        self.plot_value = self.viz.line(X=[0], Y=[0])
         self.v_history = []
-        self.t_history = []
         self.w_history = []
         self.a_history = []
         self.r_history = []
@@ -47,60 +46,68 @@ class Agent(Module):
         self.optimizer.step()
 
     def decision(self, done, x, y, rz, v, r, t):  # return action
-        a_probs, w_probs = self(tensor([x, y, rz, v]))
-        a_dist = Categorical(a_probs)
-        w_dist = Categorical(w_probs)
-        a_index = a_dist.sample()
-        w_index = w_dist.sample()
-        if(t):
-            self.records_r.append(r)  # feedback of last episode
-        a = self.a_space[a_index].item()
-        w = self.w_space[w_index].item()
+        if len(self.records):
+            self.records[-1][0]=r
+        if not done:
+            a_probs, w_probs = self(tensor([x, y, rz, v]))
+            a_dist = Categorical(a_probs)
+            w_dist = Categorical(w_probs)
+            a_index = a_dist.sample()
+            w_index = w_dist.sample()
+            self.records.append([
+                0,
+                a_dist.probs[a_index],
+                w_dist.probs[w_index],
+                a_dist.log_prob(a_index),
+                w_dist.log_prob(w_index)
+            ])  # feedback of last episode
+            a = self.a_space[a_index].item()
+            w = self.w_space[w_index].item()
+        else:
+            a = w = 0
+            self.finish_episode()
 
         if(done):
-            self.finish_episode()
-            self.v_history = [0]
-            self.a_history = [0]
-            self.w_history = [0]
-            self.t_history = [0]
-            self.r_history = [0]
+            self.v_history = []
+            self.a_history = []
+            self.w_history = []
+            self.r_history = []
         else:
-            # actions' probabilities of next episode
-            self.records_p.append(
-                (a_dist.log_prob(a_index), w_dist.log_prob(w_index)))
             self.v_history.append(v)
             self.a_history.append(a)
-            self.t_history.append(t)
             self.w_history.append(w)
             self.r_history.append(r)
-
-        self.viz.line(X=self.t_history, Y=self.v_history,
-                      win=self.plot_v, opts=dict(ylabel="velocity"))
-        self.viz.line(X=self.t_history, Y=self.a_history,
-                      win=self.plot_a, opts=dict(ylabel="acceleration"))
-        self.viz.line(X=self.t_history, Y=self.w_history,
-                      win=self.plot_w, opts=dict(ylabel="front wheel angle"))
-        self.viz.line(X=self.t_history, Y=self.r_history,
-                      win=self.plot_r, opts=dict(ylabel="feedback"))
+            x_series=list(range(len(self.v_history)))
+            self.viz.line(X=x_series, Y=self.v_history,
+                          win=self.plot_v, opts=dict(ylabel="velocity"))
+            self.viz.line(X=x_series, Y=self.a_history,
+                          win=self.plot_a, opts=dict(ylabel="acceleration"))
+            self.viz.line(X=x_series, Y=self.w_history,
+                          win=self.plot_w, opts=dict(ylabel="front wheel angle"))
+            self.viz.line(X=x_series, Y=self.r_history,
+                          win=self.plot_r, opts=dict(ylabel="feedback"))
         return a, w
 
     def finish_episode(self):
-        loss = tensor(0.)
-        e = 0
-        errors = []
-        for r in self.records_r[::-1]:
-            e = r+0.7*e
-            errors.insert(0, e)
-        terrors = tensor(errors)
-        terrors = (terrors-terrors.mean())/(terrors.std()+1e-10)
-        for e, p in zip(terrors, self.records_p):
-            loss += e*p[0]*p[1]
-        if loss!=tensor(0.):
-            self.optimize(loss)
-        del self.records_r[:]
-        del self.records_p[:]
+        values = []
+        for r, ap, wp, lap, lwp in self.records:
+            values.append(r)
+        values=tensor(values)
+        values=standardize(values)
+        pstdloss=stdloss=rloss=prloss=0
+        for value, record in zip(values,self.records):
+            pstdloss += value*record[1]*record[2]
+            stdloss+=value
+            rloss+=record[0]
+            prloss+=record[0]*record[1]*record[2]
+        self.optimize(prloss)
 
-        self.episode += 1
-        self.l_history.append(loss.item())
-        self.viz.line(X=list(range(self.episode)), Y=self.l_history,
-                      win=self.plot_l, opts=dict(ylabel="loss"))
+        self.l_history.append([pstdloss.item(),prloss.item(),stdloss,rloss])
+        self.viz.line(X=list(range(len(self.l_history))), Y=self.l_history,
+                      win=self.plot_l, opts=dict(ylabel="loss",legend=["pstd","pr","std","r"]))
+        self.viz.line(X=list(range(len(self.records))), Y=tensor(self.records),
+                      win=self.plot_value, opts=dict(ylabel="value", width=800,height=200,legend=["r","ap","wp","lap","lwp"]))
+
+        del self.records[:]
+
+        

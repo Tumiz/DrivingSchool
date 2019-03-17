@@ -89,25 +89,13 @@ new Vue({
         },
         judge(obj){
             var p_gap=obj.position.distanceTo(flag.position)
-            var v_gap=Math.abs(obj.v)
             var init_p_gap=flag.position.length()
-            if(this.time>200){
-                R=-1
+            R=p_gap/init_p_gap
+            if(this.time>150){
                 return true
+            }else{
+                return false
             }
-            R=0
-            if(p_gap<obj.p_gap){
-                R+=1
-            }
-            if(p_gap>obj.p_gap||obj.v>10){
-                R-=1
-            }
-            if(p_gap<this.p_error&&v_gap<this.v_error){
-                R+=1
-            }
-            obj.p_gap=p_gap
-            obj.v_gap=v_gap
-            return false
         },
         connect(func) {
             var ws = new WebSocket(window.location.href.replace("http", "ws") + "sim")
