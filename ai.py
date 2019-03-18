@@ -31,7 +31,7 @@ class Agent(Module):
         self.v_history = []
         self.w_history = []
         self.a_history = []
-        self.r_history = []
+        self.f_history = []
         self.l_history = []
 
     def forward(self, x):
@@ -45,9 +45,9 @@ class Agent(Module):
         loss.backward()
         self.optimizer.step()
 
-    def decision(self, done, x, y, rz, v, r, t):  # return action
+    def decision(self, done, x, y, rz, v, feed, t):  # return action
         if len(self.records):
-            self.records[-1][0]=r
+            self.records[-1][0] = feed
         if not done:
             a_probs, w_probs = self(tensor([x, y, rz, v]))
             a_dist = Categorical(a_probs)
@@ -58,9 +58,9 @@ class Agent(Module):
                 0,
                 a_dist.probs[a_index],
                 w_dist.probs[w_index],
-                a_dist.log_prob(a_index),
+                a_dist.log_prob(a_index), # entropy, negtive
                 w_dist.log_prob(w_index)
-            ])  # feedback of last episode
+            ])  # record of last episode
             a = self.a_space[a_index].item()
             w = self.w_space[w_index].item()
         else:
@@ -71,43 +71,45 @@ class Agent(Module):
             self.v_history = []
             self.a_history = []
             self.w_history = []
-            self.r_history = []
+            self.f_history = []
         else:
             self.v_history.append(v)
             self.a_history.append(a)
             self.w_history.append(w)
-            self.r_history.append(r)
-            x_series=list(range(len(self.v_history)))
+            self.f_history.append(feed)
+            x_series = list(range(len(self.v_history)))
             self.viz.line(X=x_series, Y=self.v_history,
                           win=self.plot_v, opts=dict(ylabel="velocity"))
             self.viz.line(X=x_series, Y=self.a_history,
                           win=self.plot_a, opts=dict(ylabel="acceleration"))
             self.viz.line(X=x_series, Y=self.w_history,
                           win=self.plot_w, opts=dict(ylabel="front wheel angle"))
-            self.viz.line(X=x_series, Y=self.r_history,
-                          win=self.plot_r, opts=dict(ylabel="feedback"))
+            self.viz.line(X=x_series, Y=self.f_history,
+                          win=self.plot_r, opts=dict(ylabel="feed"))
         return a, w
 
     def finish_episode(self):
         values = []
-        for r, ap, wp, lap, lwp in self.records:
-            values.append(r)
-        values=tensor(values)
-        values=standardize(values)
-        pstdloss=stdloss=rloss=prloss=0
-        for value, record in zip(values,self.records):
-            pstdloss += value*record[1]*record[2]
-            stdloss+=value
-            rloss+=record[0]
-            prloss+=record[0]*record[1]*record[2]
-        self.optimize(prloss)
+        for feed, ap, wp, lap, lwp in self.records:
+            values.append(feed)
+        values = tensor(values)
+        values = standardize(values)
+        psloss = lsloss = prloss = lrloss = sloss= rloss=0
+        for value, record in zip(values, self.records):
+            psloss += value*record[1]*record[2]  # value*p(a)*p(w)
+            # log(1/p(a,w))=-log(p(a)*p(w))=-log(p(a))-log(p(w))
+            lsloss += value*(-record[3]-record[4])
+            prloss += record[0]*record[1]*record[2]  # feed*p(a)*p(w)
+            lrloss += record[0]*(-record[3]-record[4]) # feed*log(1/p(a,w))
+            sloss += value  # sum(value0,value1,...,valuet), no gradient
+            rloss += record[0]  # sum(feed0,feed1,...,feedt), no gradient
 
-        self.l_history.append([pstdloss.item(),prloss.item(),stdloss,rloss])
+        self.optimize(lsloss)
+
+        self.l_history.append([psloss.item(), lsloss.item(), prloss.item(), lrloss.item(), sloss, rloss])
         self.viz.line(X=list(range(len(self.l_history))), Y=self.l_history,
-                      win=self.plot_l, opts=dict(ylabel="loss",legend=["pstd","pr","std","r"]))
+                      win=self.plot_l, opts=dict(ylabel="loss", legend=["ps", "ls", "pr", "lr", "s", "r"]))
         self.viz.line(X=list(range(len(self.records))), Y=tensor(self.records),
-                      win=self.plot_value, opts=dict(ylabel="value", width=800,height=200,legend=["r","ap","wp","lap","lwp"]))
+                      win=self.plot_value, opts=dict(ylabel="record", width=1000, height=400, legend=["feed", "ap", "wp", "lap", "lwp"]))
 
         del self.records[:]
-
-        

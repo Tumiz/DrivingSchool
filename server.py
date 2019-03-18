@@ -43,12 +43,12 @@ class SimHandler(WebSocketHandler):
             x=float(request_data["x"])
             y=float(request_data["y"])
             rz=float(request_data["rz"])
-            R=float(request_data["R"])
+            feed=float(request_data["R"])
             if(not self.agents.__contains__(id)):
                 self.agents[id]=Agent()
             response_data=dict()
             response_data["id"]=id
-            response_data["a"],response_data["front_wheel_angle"]=self.agents[id].decision(done,x,y,rz,v,R,t)
+            response_data["a"],response_data["front_wheel_angle"]=self.agents[id].decision(done,x,y,rz,v,feed,t)
             self.publish("timer",response_data)
         elif(request_type=="reset"):
             self.agents.clear()
