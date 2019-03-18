@@ -1,5 +1,5 @@
 from torch.optim import Adam
-from torch import tensor, arange
+from torch import tensor, arange, stack
 from torch.nn import Module, Linear
 from torch.nn.functional import softmax, elu
 from torch.distributions import Categorical
@@ -58,7 +58,7 @@ class Agent(Module):
                 0,
                 a_dist.probs[a_index],
                 w_dist.probs[w_index],
-                a_dist.log_prob(a_index), # entropy, negtive
+                a_dist.log_prob(a_index),  # entropy, negtive
                 w_dist.log_prob(w_index)
             ])  # record of last episode
             a = self.a_space[a_index].item()
@@ -94,21 +94,22 @@ class Agent(Module):
             values.append(feed)
         values = tensor(values)
         values = standardize(values)
-        psloss = lsloss = prloss = lrloss = sloss= rloss=0
+        psloss = lsloss = prloss = lrloss = []
+        rloss = 0
         for value, record in zip(values, self.records):
-            psloss += value*record[1]*record[2]  # value*p(a)*p(w)
+            psloss.append(value*record[1]*record[2])  # value*p(a)*p(w)
             # log(1/p(a,w))=-log(p(a)*p(w))=-log(p(a))-log(p(w))
-            lsloss += value*(-record[3]-record[4])
-            prloss += record[0]*record[1]*record[2]  # feed*p(a)*p(w)
-            lrloss += record[0]*(-record[3]-record[4]) # feed*log(1/p(a,w))
-            sloss += value  # sum(value0,value1,...,valuet), no gradient
+            lsloss.append(value*(-record[3]-record[4]))
+            prloss.append(record[0]*record[1]*record[2])  # feed*p(a)*p(w)
+            lrloss.append(record[0]*(-record[3]-record[4]))  # feed*log(1/p(a,w))
             rloss += record[0]  # sum(feed0,feed1,...,feedt), no gradient
+        loss=stack(prloss).sum()
+        self.optimize(loss)
 
-        self.optimize(lsloss)
-
-        self.l_history.append([psloss.item(), lsloss.item(), prloss.item(), lrloss.item(), sloss, rloss])
+        self.l_history.append(
+            [loss.item(), rloss])
         self.viz.line(X=list(range(len(self.l_history))), Y=self.l_history,
-                      win=self.plot_l, opts=dict(ylabel="loss", legend=["ps", "ls", "pr", "lr", "s", "r"]))
+                      win=self.plot_l, opts=dict(ylabel="loss", legend=["l", "r"]))
         self.viz.line(X=list(range(len(self.records))), Y=tensor(self.records),
                       win=self.plot_value, opts=dict(ylabel="record", width=1000, height=400, legend=["feed", "ap", "wp", "lap", "lwp"]))
 

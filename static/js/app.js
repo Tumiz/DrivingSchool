@@ -76,8 +76,8 @@ new Vue({
                             obj.reset()
                             var r=20
                             var theta=Math.random()*1.2-0.6
-                            flag.position.x=r*Math.cos(theta)
-                            flag.position.y=r*Math.sin(theta)
+                            // flag.position.x=r*Math.cos(theta)
+                            // flag.position.y=r*Math.sin(theta)
                             this.time=0
                             this.counts+=1
                         }       
