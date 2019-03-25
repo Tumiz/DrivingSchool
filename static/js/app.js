@@ -6,16 +6,16 @@ new Vue({
             id: 0,
             wheel_base: 2.7,
             v: 0,
-            front_wheel_angle: 0,
+            w: 0,
             x: 0,
             y: 0,
             a: 0,
-            ai:  true,
-            v_error:3,
-            p_error:6,//position error
+            ai: true,
+            rand_target: false,
+            p_error: 6,//position error
             counts: 0,
-            running:false,
-            time:0,
+            running: false,
+            time: 0,
             number: 0,
             ws: []
         }
@@ -29,8 +29,8 @@ new Vue({
         canvas.ondblclick = this.mouseDoubleClickHandler
         document.onkeydown = this.keyDownHandler
         document.onkeyup = this.keyUpHandler
-        flag=new Flag(this.p_error)
-        flag.position.set(20,0,0)
+        flag = new Flag(this.p_error)
+        flag.position.set(20, 0, 0)
         this.connect()
     },
     methods: {
@@ -42,60 +42,58 @@ new Vue({
             this.ws.send(JSON.stringify(request))
         },
         onMessage(event) {
-            if(!this.running)
+            if (!this.running)
                 return
             var msg = JSON.parse(event.data)
             var type = msg.type
             var data = msg.data
             switch (type) {
                 case "timer":
-                    var obj=objects.getObjectById(data.id)
-                    if(obj&&obj.type=="Car"){
-                        obj.a=data.a     
-                        obj.front_wheel_angle=data.front_wheel_angle
-                        obj.step(100) 
-                        this.x=obj.position.x.toFixed(2)
-                        this.y=obj.position.y.toFixed(2)
+                    var obj = objects.getObjectById(data.id)
+                    if (obj && obj.type == "Car") {
+                        obj.a = data.a
+                        obj.w = data.w
+                        obj.step(100)
+                        this.x = obj.position.x.toFixed(2)
+                        this.y = obj.position.y.toFixed(2)
                         this.v = obj.v
                         this.a = obj.a
-                        this.front_wheel_angle=obj.front_wheel_angle  
-                        this.time+=1    
-                        var done=this.judge(obj)
-                        var local=obj.worldToLocal(flag.position.clone())
-                        this.send("timer",{
-                            done:done,
-                            id:obj.id,
-                            x:local.x,
-                            y:local.y,
-                            rz:obj.rotation.z,
-                            v:obj.v,
-                            R:R,
-                            t:this.time,
-                        }) 
-                        if(done){
+                        this.w = obj.w
+                        this.time += 1
+                        var done = this.sendstate(obj)
+                        if (done) {
                             obj.reset()
-                            var r=20
-                            var theta=Math.random()*1.2-0.6
-                            // flag.position.x=r*Math.cos(theta)
-                            // flag.position.y=r*Math.sin(theta)
-                            this.time=0
-                            this.counts+=1
-                        }       
+                            this.time = 0
+                            this.counts += 1
+                            if (this.rand_target) {
+                                var r = 20
+                                var theta = Math.random() * 1.2 - 0.6
+                                flag.position.x = r * Math.cos(theta)
+                                flag.position.y = r * Math.sin(theta)
+                            }
+                        }
                     }
                     break
                 default:
                     break
             }
         },
-        judge(obj){
-            var p_gap=obj.position.distanceTo(flag.position)
-            var init_p_gap=flag.position.length()
-            R=p_gap/init_p_gap
-            if(this.time>150){
-                return true
-            }else{
-                return false
+        sendstate(obj) {
+            var done=false
+            if (this.time > 150) {
+                done= true
             }
+            var local = obj.worldToLocal(flag.position.clone())
+            this.send("timer", {
+                done: done,
+                id: obj.id,
+                x: local.x,
+                y: local.y,
+                rz: obj.rotation.z,
+                v: obj.v,
+                p_error: this.p_error
+            })
+            return done
         },
         connect(func) {
             var ws = new WebSocket(window.location.href.replace("http", "ws") + "sim")
@@ -110,50 +108,41 @@ new Vue({
             this.ws = ws
         },
         start() {
-            this.running=true
+            this.running = true
             if (this.ws.readyState == 3)
                 this.connect()
-            for(var i=0,l=objects.children.length;i<l;i++){
+            for (var i = 0, l = objects.children.length; i < l; i++) {
                 var obj = objects.children[i]
-                if ( obj.type=="Car"){
-                    this.send("timer",{
-                        done:false,
-                        id:obj.id,
-                        x:obj.position.x-flag.position.x,
-                        y:obj.position.y-flag.position.y,
-                        rz:obj.rotation.z,
-                        v:obj.v,
-                        R:0,
-                        t:this.time,
-                    }) 
+                if (obj.type == "Car") {
+                    this.sendstate(obj)
                 }
             }
         },
         stop() {
-            this.running=false
+            this.running = false
         },
-        reset(){
-            this.running=false
-            for(var i=0,l=objects.children.length;i<l;i++){
+        reset() {
+            this.running = false
+            for (var i = 0, l = objects.children.length; i < l; i++) {
                 var obj = objects.children[i]
-                if ( obj.type=="Car"){
+                if (obj.type == "Car") {
                     obj.reset()
                 }
             }
             this.number = objects.children.length
-            this.time=0
-            this.counts=0
-            this.send("reset",{}) 
+            this.time = 0
+            this.counts = 0
+            this.send("reset", {})
         },
         open(url) {
             window.open(url)
         },
-        changeperror(value){
-            flag.circle.geometry=new THREE.CircleGeometry(value, 32 )
+        changeperror(value) {
+            flag.circle.geometry = new THREE.CircleGeometry(value, 32)
         },
-        changeAIstate(enable){
-            if(pickedObj && pickedObj.type == "Car")
-                pickedObj.ai=enable
+        changeAIstate(enable) {
+            if (pickedObj && pickedObj.type == "Car")
+                pickedObj.ai = enable
         },
         wheelHandler(event) {
             activeViewPort = currentViewPort(event.offsetX, event.offsetY)
@@ -185,12 +174,12 @@ new Vue({
                         this.number = objects.children.length
                     }
                 }
-            }else{
-                this.id=pickedObj.id
-                this.x=pickedObj.position.x.toPrecision(4)
-                this.y=pickedObj.position.y.toPrecision(4)
-                if(pickedObj.type=="Car"){
-                    this.ai=pickedObj.ai
+            } else {
+                this.id = pickedObj.id
+                this.x = pickedObj.position.x.toPrecision(4)
+                this.y = pickedObj.position.y.toPrecision(4)
+                if (pickedObj.type == "Car") {
+                    this.ai = pickedObj.ai
                 }
             }
         },
@@ -264,11 +253,11 @@ new Vue({
                     pickedObj.rotation.z -= 0.01
                     break
                 case 46://delete
-                    if(pickedObj){
+                    if (pickedObj) {
                         scene.add(cameras[0])
                         objects.remove(pickedObj)
-                        this.id=0
-                        this.number=objects.children.length
+                        this.id = 0
+                        this.number = objects.children.length
                     }
                     break
                 case 87://w
@@ -300,11 +289,11 @@ new Vue({
                         if (this.timer == 0) {
                             this.start()
                         }
-                        if (pickedObj.front_wheel_angle > 0)
-                            pickedObj.front_wheel_angle = 0
+                        if (pickedObj.w > 0)
+                            pickedObj.w = 0
                         else
-                            pickedObj.front_wheel_angle -= 0.01
-                        this.front_wheel_angle = pickedObj.front_wheel_angle
+                            pickedObj.w -= 0.01
+                        this.w = pickedObj.w
                     }
                     break
                 case 65://A:
@@ -312,11 +301,11 @@ new Vue({
                         if (this.timer == 0) {
                             this.start()
                         }
-                        if (pickedObj.front_wheel_angle < 0)
-                            pickedObj.front_wheel_angle = 0
+                        if (pickedObj.w < 0)
+                            pickedObj.w = 0
                         else
-                            pickedObj.front_wheel_angle += 0.01
-                        this.front_wheel_angle = pickedObj.front_wheel_angle
+                            pickedObj.w += 0.01
+                        this.w = pickedObj.w
                     }
                     break
                 default:

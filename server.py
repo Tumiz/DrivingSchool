@@ -5,7 +5,7 @@ import tornado.options
 import os
 import json
 import time
-from ai import Agent
+from continuouspolicygradient import Agent
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler,StaticFileHandler
 from tornado.websocket import WebSocketHandler
@@ -39,16 +39,15 @@ class SimHandler(WebSocketHandler):
             done=bool(request_data["done"])
             id=int(request_data["id"])# id of agent
             v=float(request_data["v"])
-            t=float(request_data["t"])
             x=float(request_data["x"])
             y=float(request_data["y"])
             rz=float(request_data["rz"])
-            feed=float(request_data["R"])
+            p_error=float(request_data["p_error"])
             if(not self.agents.__contains__(id)):
                 self.agents[id]=Agent()
             response_data=dict()
             response_data["id"]=id
-            response_data["a"],response_data["front_wheel_angle"]=self.agents[id].decision(done,x,y,rz,v,feed,t)
+            response_data["a"],response_data["w"]=self.agents[id].decision(done,x,y,rz,v,p_error)
             self.publish("timer",response_data)
         elif(request_type=="reset"):
             self.agents.clear()

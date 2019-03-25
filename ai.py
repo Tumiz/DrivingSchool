@@ -3,7 +3,7 @@ from torch import tensor, arange, stack
 from torch.nn import Module, Linear
 from torch.nn.functional import softmax, elu
 from torch.distributions import Categorical
-from algris import standardize
+from algris import normalize
 
 import visdom
 
@@ -93,7 +93,7 @@ class Agent(Module):
         for feed, ap, wp, lap, lwp in self.records:
             values.append(feed)
         values = tensor(values)
-        values = standardize(values)
+        values = normalize(values)
         psloss = lsloss = prloss = lrloss = []
         rloss = 0
         for value, record in zip(values, self.records):

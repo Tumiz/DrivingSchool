@@ -12,7 +12,6 @@ An AI controlled vehicle run along axis x's direction, and find a way to arrive 
 
 ## Requirements
 
-* Python: >=3.0
 * WebGL is supported on your web browser
 
 ## Preparation

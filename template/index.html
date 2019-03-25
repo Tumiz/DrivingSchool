@@ -15,11 +15,10 @@
         <el-button type="info" @click="stop()">✖ Stop</el-button>
         <el-button type="info" @click="reset()">↺ Reset</el-button>
         p err: <el-input v-model="p_error" @change="changeperror"></el-input>
-        v err: <el-input v-model="v_error"></el-input>
-        front wheel angle: <el-input v-model="front_wheel_angle"></el-input>
+        w: <el-input v-model="w"></el-input>
         v: <el-input v-model="v"></el-input>
         a: <el-input v-model="a"></el-input>
-        <el-checkbox v-model="ai" label="AI" @change="changeAIstate"></el-checkbox>
+        <el-checkbox v-model="rand_target" label="Random"></el-checkbox>
         ID ${id}, ${number} objects x:${x}, y:${y} 
         episode:${counts} Time: ${time}
     </div>
