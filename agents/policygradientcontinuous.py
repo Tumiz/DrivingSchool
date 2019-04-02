@@ -28,7 +28,23 @@ class Agent(Module):
         self.policy = Policy()
         self.optimizer = Adam(self.parameters(), lr=0.01)
         self.feeds = []  # records of returns
+        self.state_actions = []
         self.a_logprobs = []
+        self.w_logprobs = []
+
+        self.viz = visdom.Visdom()
+        self.viz.close(win=None)
+        self.plot_v = self.viz.line(X=[0], Y=[0])
+        self.plot_a = self.viz.line(X=[0], Y=[0])
+        self.plot_w = self.viz.line(X=[0], Y=[0])
+        self.plot_r = self.viz.line(X=[0], Y=[0])
+        self.plot_l = self.viz.line(X=[0], Y=[0])
+        self.plot_value = self.viz.line(X=[0], Y=[0])
+        self.v_history = []
+        self.w_history = []
+        self.a_history = []
+        self.f_history = []
+        self.l_history = []
 
     def select_action(self,state):
         a_mu,a_sigma=self.policy(state)
