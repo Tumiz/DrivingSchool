@@ -1,6 +1,7 @@
 from torch import tensor
 from visdom import Visdom
 from torch import tensor, arange
+viz=Visdom()
 
 def normalize(data):# input tensor
     ret = (data-data.mean())/(data.std()+1e-10)
@@ -13,3 +14,6 @@ def gather(feeds,gamma):#input list
         V=feed+gamma*V
         values.insert(0,V)
     return values
+
+def plot(x,y):
+    viz.line(X=x,Y=y)
