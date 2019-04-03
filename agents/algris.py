@@ -20,7 +20,6 @@ def truncatedsample(samplefunc,low,high):
     while sample<=low or sample>=high:
         sample=samplefunc()
     return sample
-    return values
 
 def plot(x,y):
     viz.line(X=x,Y=y)
