@@ -5,11 +5,13 @@ import tornado.options
 import os
 import json
 import time
-from continuouspolicygradient import Agent
+
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler,StaticFileHandler
 from tornado.websocket import WebSocketHandler
 from tornado.options import define, options
+
+from agents.continuouspolicygradient import Agent
 
 class IndexHandler(RequestHandler):
     def get(self):

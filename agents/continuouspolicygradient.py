@@ -1,9 +1,9 @@
 from torch.optim import Adam
-from torch import tensor, arange, stack, isnan
+from torch import tensor, arange, stack, isnan, tanh
 from torch.nn import Module, Linear
 from torch.nn.functional import softplus, elu
 from torch.distributions.normal import Normal
-from algris import normalize, gather
+from agents.algris import normalize, gather
 
 import visdom
 
@@ -20,18 +20,9 @@ class Policy(Module):
     def forward(self, x):
         x1 = elu(self.s_head(x))
         a_mu, a_sigma = self.a_head(x1)
-        a_sigma = softplus(a_sigma)
-        a_dist = Normal(a_mu, a_sigma)
-        a = a_dist.sample()
-        a_logprob = a_dist.log_prob(a)
         w_mu, w_sigma = self.w_head(x1)
-        w_sigma = softplus(w_sigma)
-        w_dist = Normal(w_mu, w_sigma)
-        w = w_dist.sample()
-        w_logprob = w_dist.log_prob(w)
-        if isnan(a) or isnan(w):
-            print(x, a_mu, a_sigma, a, a_logprob, w_mu, w_sigma, w, w_logprob)
-        return a.item(), a_logprob, w.item(), w_logprob
+        return a_mu, a_sigma, w_mu, w_sigma
+
 
 
 class Agent(Module):
@@ -41,7 +32,7 @@ class Agent(Module):
         self.policy = Policy()
         self.optimizer = Adam(self.parameters(), lr=0.01)
         self.feeds = []  # records of returns
-        self.states = []
+        self.state_actions = []
         self.a_logprobs = []
         self.w_logprobs = []
 
@@ -53,6 +44,7 @@ class Agent(Module):
         self.plot_r = self.viz.line(X=[0], Y=[0])
         self.plot_l = self.viz.line(X=[0], Y=[0])
         self.plot_value = self.viz.line(X=[0], Y=[0])
+        self.plot_p = self.viz.line(X=[0], Y=[0])
         self.v_history = []
         self.w_history = []
         self.a_history = []
@@ -62,22 +54,34 @@ class Agent(Module):
     def judge(self, x, y, v, p_error):
         d = pow(pow(x, 2)+pow(y, 2), 0.5)
         if(d < p_error and v >= 0):
-            return 100
-        elif v<0:
-            return v
+            return 100.
         else:
-            return -1
+            return -1.
+
+    def select_action(self,state):
+        a_mu,a_sigma,w_mu,w_sigma=self.policy(state)
+        self.state_actions.append([state,a_mu,a_sigma,w_mu,w_sigma])
+        a_mu = tanh(a_mu)
+        a_sigma = softplus(a_sigma)
+        a_dist = Normal(a_mu, a_sigma)
+        a = a_dist.sample().item()
+        a_logprob = a_dist.log_prob(a)
+        self.a_logprobs.append(a_logprob)
+        w_mu = tanh(w_mu)
+        w_sigma = softplus(w_sigma)
+        w_dist = Normal(w_mu, w_sigma)
+        w = w_dist.sample().item()
+        w_logprob = w_dist.log_prob(w)
+        self.w_logprobs.append(w_logprob)
+        return a, w
 
     def decision(self, done, x, y, rz, v, p_error):  # return action
         feed = self.judge(x, y, v, p_error)
-        if len(self.states):
+        if len(self.state_actions):
             self.feeds.append(feed)
         if not done:
             state = tensor([x, y, rz, v])
-            a, a_logprob, w, w_logprob = self.policy(state)
-            self.states.append(state)
-            self.a_logprobs.append(a_logprob)
-            self.w_logprobs.append(w_logprob)
+            a, w = self.select_action(state)
         else:
             a = w = 0
             self.finish_episode()
@@ -104,7 +108,7 @@ class Agent(Module):
         return a, w
 
     def finish_episode(self):
-        values, rloss = gather(self.feeds, 0.99)
+        values = gather(self.feeds, 0.99)
         tvalues = tensor(values)
         nvalues = normalize(tvalues)
         losses = []
@@ -116,8 +120,13 @@ class Agent(Module):
         loss.backward()
         self.optimizer.step()
 
-        self.l_history.append(
-            [loss.item(), rloss])
+        new_actions=[]
+        for state,a_mu,a_sigma,w_mu,w_sigma in self.state_actions:
+            new_a_mu, new_a_sigma, new_w_mu, new_w_sigma = self.policy(state)
+            new_actions.append(tensor([a_mu,new_a_mu,w_mu,new_w_mu]))
+        self.viz.line(X=list(range(len(new_actions))),Y=stack(new_actions), win=self.plot_p, opts=dict(legend=["a", "na", "w", "nw"]))
+
+        self.l_history.append([loss.item(), sum(self.feeds)])
         self.viz.line(X=list(range(len(self.l_history))), Y=self.l_history,
                       win=self.plot_l, opts=dict(ylabel="loss", legend=["l", "r"]))
         self.viz.line(X=list(range(len(values))), Y=list(zip(nvalues, values, self.feeds)),
@@ -126,4 +135,4 @@ class Agent(Module):
         self.feeds = []
         self.a_logprobs = []
         self.w_logprobs = []
-        self.states = []
+        self.state_actions = []
