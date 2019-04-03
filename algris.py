@@ -12,3 +12,9 @@ def gather(feeds,gamma):#input list
         values.insert(0,V)
         feedsum+=feed
     return values, feedsum
+
+def truncatedsample(samplefunc,low,high):
+    sample=samplefunc()
+    while sample<=low or sample>=high:
+        sample=samplefunc()
+    return sample
