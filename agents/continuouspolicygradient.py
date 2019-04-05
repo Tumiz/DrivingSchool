@@ -1,3 +1,5 @@
+# 策略梯度求解连续控制问题，小车可以在xy平面上移动，观察量：位姿和车速，控制量：加速度和前轮转角，目标到达目标点并停留
+
 from torch.optim import Adam
 from torch import tensor, arange, stack, isnan, tanh
 from torch.nn import Module, Linear
@@ -6,7 +8,6 @@ from torch.distributions.normal import Normal
 from agents.algris import normalize, gather
 
 import visdom
-
 
 class Policy(Module):
     def __init__(self):

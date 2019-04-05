@@ -15,5 +15,11 @@ def gather(feeds,gamma):#input list
         values.insert(0,V)
     return values
 
+def truncatedsample(samplefunc,low,high):
+    sample=samplefunc()
+    while sample<=low or sample>=high:
+        sample=samplefunc()
+    return sample
+
 def plot(x,y):
     viz.line(X=x,Y=y)
