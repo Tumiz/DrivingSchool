@@ -5,7 +5,7 @@ from torch import tensor, arange, stack, isnan, tanh
 from torch.nn import Module, Linear
 from torch.nn.functional import softplus, elu
 from torch.distributions.normal import Normal
-from agents.algris import normalize, gather
+from agents.functions import normalize, gather
 
 import visdom
 
@@ -22,16 +22,19 @@ class Policy(Module):
         x1 = elu(self.s_head(x))
         a_mu, a_sigma = self.a_head(x1)
         w_mu, w_sigma = self.w_head(x1)
+        a_mu = tanh(a_mu)
+        a_sigma = softplus(a_sigma)
+        w_mu = tanh(w_mu)*0.6
+        w_sigma = softplus(w_sigma)
         return a_mu, a_sigma, w_mu, w_sigma
 
 
 
-class Agent(Module):
+class Agent():
 
     def __init__(self):
-        super(Agent, self).__init__()
         self.policy = Policy()
-        self.optimizer = Adam(self.parameters(), lr=0.01)
+        self.optimizer = Adam(self.policy.parameters(), lr=0.01)
         self.feeds = []  # records of returns
         self.state_actions = []
         self.a_logprobs = []
@@ -42,14 +45,13 @@ class Agent(Module):
         self.plot_v = self.viz.line(X=[0], Y=[0])
         self.plot_a = self.viz.line(X=[0], Y=[0])
         self.plot_w = self.viz.line(X=[0], Y=[0])
-        self.plot_r = self.viz.line(X=[0], Y=[0])
         self.plot_l = self.viz.line(X=[0], Y=[0])
         self.plot_value = self.viz.line(X=[0], Y=[0])
-        self.plot_p = self.viz.line(X=[0], Y=[0])
+        self.plot_ac = self.viz.line(X=[0], Y=[0])
+        self.plot_wc = self.viz.line(X=[0], Y=[0])
         self.v_history = []
         self.w_history = []
         self.a_history = []
-        self.f_history = []
         self.l_history = []
 
     def judge(self, x, y, v, p_error):
@@ -61,19 +63,15 @@ class Agent(Module):
 
     def select_action(self,state):
         a_mu,a_sigma,w_mu,w_sigma=self.policy(state)
-        self.state_actions.append([state,a_mu,a_sigma,w_mu,w_sigma])
-        a_mu = tanh(a_mu)
-        a_sigma = softplus(a_sigma)
         a_dist = Normal(a_mu, a_sigma)
         a = a_dist.sample().item()
         a_logprob = a_dist.log_prob(a)
         self.a_logprobs.append(a_logprob)
-        w_mu = tanh(w_mu)
-        w_sigma = softplus(w_sigma)
         w_dist = Normal(w_mu, w_sigma)
         w = w_dist.sample().item()
         w_logprob = w_dist.log_prob(w)
         self.w_logprobs.append(w_logprob)
+        self.state_actions.append([state,a,a_mu,a_sigma,w,w_mu,w_sigma])
         return a, w
 
     def decision(self, done, x, y, rz, v, p_error):  # return action
@@ -91,12 +89,10 @@ class Agent(Module):
             self.v_history = []
             self.a_history = []
             self.w_history = []
-            self.f_history = []
         else:
             self.v_history.append(v)
             self.a_history.append(a)
             self.w_history.append(w)
-            self.f_history.append(feed)
             x_series = list(range(len(self.v_history)))
             self.viz.line(X=x_series, Y=self.v_history,
                           win=self.plot_v, opts=dict(ylabel="velocity"))
@@ -104,8 +100,6 @@ class Agent(Module):
                           win=self.plot_a, opts=dict(ylabel="acceleration"))
             self.viz.line(X=x_series, Y=self.w_history,
                           win=self.plot_w, opts=dict(ylabel="front wheel angle"))
-            self.viz.line(X=x_series, Y=self.f_history,
-                          win=self.plot_r, opts=dict(ylabel="feed"))
         return a, w
 
     def finish_episode(self):
@@ -121,11 +115,14 @@ class Agent(Module):
         loss.backward()
         self.optimizer.step()
 
-        new_actions=[]
-        for state,a_mu,a_sigma,w_mu,w_sigma in self.state_actions:
+        nas=[]
+        nws=[]
+        for state,a,a_mu,a_sigma,w,w_mu,w_sigma in self.state_actions:
             new_a_mu, new_a_sigma, new_w_mu, new_w_sigma = self.policy(state)
-            new_actions.append(tensor([a_mu,new_a_mu,w_mu,new_w_mu]))
-        self.viz.line(X=list(range(len(new_actions))),Y=stack(new_actions), win=self.plot_p, opts=dict(legend=["a", "na", "w", "nw"]))
+            nas.append(tensor([a,a_mu,new_a_mu]))
+            nws.append(tensor([w,w_mu,new_w_mu]))
+        self.viz.line(X=list(range(len(nas))),Y=stack(nas), win=self.plot_ac, opts=dict(legend=["a","am", "nam"]))
+        self.viz.line(X=list(range(len(nws))),Y=stack(nws), win=self.plot_wc, opts=dict(legend=["w","wm", "nwm"]))
 
         self.l_history.append([loss.item(), sum(self.feeds)])
         self.viz.line(X=list(range(len(self.l_history))), Y=self.l_history,
