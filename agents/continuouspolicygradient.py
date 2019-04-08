@@ -5,7 +5,7 @@ from torch import tensor, arange, stack, isnan, tanh
 from torch.nn import Module, Linear
 from torch.nn.functional import softplus, elu
 from torch.distributions.normal import Normal
-from agents.functions import normalize, gather
+from agents.functions import normalize, gather, normalsample
 
 import visdom
 
@@ -63,13 +63,9 @@ class Agent():
 
     def select_action(self,state):
         a_mu,a_sigma,w_mu,w_sigma=self.policy(state)
-        a_dist = Normal(a_mu, a_sigma)
-        a = a_dist.sample().item()
-        a_logprob = a_dist.log_prob(a)
+        a,a_logprob = normalsample(a_mu,a_sigma)
         self.a_logprobs.append(a_logprob)
-        w_dist = Normal(w_mu, w_sigma)
-        w = w_dist.sample().item()
-        w_logprob = w_dist.log_prob(w)
+        w,w_logprob = normalsample(w_mu,w_sigma)
         self.w_logprobs.append(w_logprob)
         self.state_actions.append([state,a,a_mu,a_sigma,w,w_mu,w_sigma])
         return a, w

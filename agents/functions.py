@@ -25,9 +25,6 @@ def truncatedsample(samplefunc,low,high):
         sample=samplefunc()
     return sample
 
-def plot(x,y):
-    viz.line(X=x,Y=y)
-
 def normalsample(mu,sigma):
     dist = Normal(mu, sigma)
     sample = dist.sample().item()
@@ -35,34 +32,38 @@ def normalsample(mu,sigma):
     return sample, logprob
 
 class Model(Module):
-    def __init__(self):
+    def __init__(self,nin,nout):
         super(Model, self).__init__()
-        self.s_head = Linear(4, 4*16)  # accept state
-        # a normal distribution represents output of 'a', mu,sigma
-        self.a_head = Linear(4*16, 2)
+        self.layer1 = Linear(nin, nin*nout*4)
+        self.layer2 = Linear(nin*nout*4, nout)
         self.optimizer = Adam(self.parameters())
         self.loss = tensor(0.,requires_grad=True)
 
     def forward(self, x):
-        x1 = elu(self.s_head(x))
-        a_mu, a_sigma = self.a_head(x1)
-        a_mu = tanh(a_mu)
-        a_sigma = softplus(a_sigma)
-        return a_mu, a_sigma
+        x = elu(self.layer1(x))
+        return self.layer2(x)
 
     def optimize(self):
         self.optimizer.zero_grad()
         self.loss.backward()
         self.optimizer.step()
 
-def test(episode):
-    m=Model()
-    series=[]
-    state=tensor([0.,0.,0.,0.])
-    for i in range(episode):
-        d=m(state)
-        series.append(d[0].item())
-        s=normalsample(d[0],d[1])
-        m.loss=-s[0]*-s[1]
-        m.optimize()
-    plot(list(range(len(series))),series)
+def env(a,w):
+    return abs(a+0.3)*abs(w-0.1)
+
+def tonormal(a1,a2):
+    return tanh(a1), softplus(a2)
+
+m=Model(4,4)
+series=[]
+state=tensor([0.,0.,0.,0.])
+for i in range(4000):
+    d=m(state)
+    a_mu,a_sigma=tonormal(d[0],d[1])
+    w_mu,w_sigma=tonormal(d[2],d[3])
+    a=normalsample(a_mu,a_sigma)
+    w=normalsample(w_mu,w_sigma)
+    m.loss=env(a[0],w[0])*(a[1]+w[1])
+    m.optimize()
+    series.append([a_mu.item(),a_sigma.item(),w_mu.item(),w_sigma.item()])
+viz.line(X=list(range(len(series))),Y=series,opts=dict(legend=["a_mu","a_sigma","w_mu","w_sigma"]))
